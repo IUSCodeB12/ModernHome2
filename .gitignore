@@ -43,3 +43,6 @@ next-env.d.ts
 
 # Local MCP config (contains API key)
 .mcp.json
+
+# Claude Code local config
+.claude/
