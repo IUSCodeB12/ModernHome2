@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
 import { FloatingCta } from "@/components/site/floating-cta";
+import { isSupabaseConfigured } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 const footerLinks = [
   { href: "/services", label: "Services" },
@@ -9,14 +11,25 @@ const footerLinks = [
   { href: "/portal", label: "My bookings" },
 ];
 
-export default function SiteLayout({
+async function getSessionEmail(): Promise<string | null> {
+  if (!isSupabaseConfigured()) return null;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user?.email ?? null;
+}
+
+export default async function SiteLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const email = await getSessionEmail();
+
   return (
     <div className="site-theme flex min-h-screen flex-col">
-      <SiteHeader />
+      <SiteHeader email={email} />
 
       <main className="flex-1">{children}</main>
       <FloatingCta />

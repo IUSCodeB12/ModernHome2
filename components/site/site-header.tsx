@@ -13,6 +13,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { UserMenu } from "@/components/site/user-menu";
 import { cn } from "@/lib/utils";
 
 // Lazy — framer-motion loads only on the first mobile-menu tap.
@@ -37,7 +38,7 @@ function PlusMark({ className }: { className?: string }) {
   );
 }
 
-export function SiteHeader() {
+export function SiteHeader({ email }: { email: string | null }) {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
@@ -103,12 +104,25 @@ export function SiteHeader() {
                   </Link>
                 );
               })}
+              {!email && (
+                <Link
+                  href="/login"
+                  className="rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Sign in
+                </Link>
+              )}
               <Button asChild size="sm" className="ml-1 rounded-full">
                 <Link href="/quote">
                   Get a quote
                   <ArrowRight />
                 </Link>
               </Button>
+              {email && (
+                <div className="ml-2">
+                  <UserMenu email={email} />
+                </div>
+              )}
             </nav>
 
             {/* Mobile toggle */}
@@ -131,7 +145,7 @@ export function SiteHeader() {
 
       {/* Mobile disclosure menu — mounted (and framer-motion loaded) only
           after the first tap. */}
-      {everOpened && <MobileMenu open={open} links={navLinks} />}
+      {everOpened && <MobileMenu open={open} links={navLinks} email={email} />}
     </header>
   );
 }

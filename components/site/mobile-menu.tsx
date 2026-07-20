@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, LogOut, Settings } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -13,10 +15,21 @@ import { Button } from "@/components/ui/button";
 export default function MobileMenu({
   open,
   links,
+  email,
 }: {
   open: boolean;
   links: { href: string; label: string }[];
+  email: string | null;
 }) {
+  const router = useRouter();
+
+  async function signOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  }
+
   return (
     <AnimatePresence initial={false}>
       {open && (
@@ -54,6 +67,35 @@ export default function MobileMenu({
                 <ArrowRight />
               </Link>
             </Button>
+
+            {/* Account section */}
+            <div className="mt-4 border-t pt-4">
+              {email ? (
+                <div className="space-y-1">
+                  <p className="truncate px-1 pb-1 text-xs text-muted-foreground">{email}</p>
+                  <Link
+                    href="/portal/settings"
+                    className="flex items-center gap-2 py-2 text-base font-medium text-foreground"
+                  >
+                    <Settings className="size-4" /> Account settings
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={signOut}
+                    className="flex items-center gap-2 py-2 text-base font-medium text-foreground"
+                  >
+                    <LogOut className="size-4" /> Sign out
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  href="/login"
+                  className="block py-2 text-base font-medium text-foreground"
+                >
+                  Sign in
+                </Link>
+              )}
+            </div>
           </div>
         </motion.div>
       )}
