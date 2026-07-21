@@ -5,6 +5,7 @@ import { z } from "zod";
 import { adminAction, type ActionResult } from "@/lib/admin/guard";
 import { canTransition, type BookingStatus } from "@/lib/bookings/status";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
+import { notifyCustomer } from "@/lib/email/notify";
 import type { TablesUpdate } from "@/lib/database.types";
 
 const schema = z.object({
@@ -29,7 +30,9 @@ export async function updateBookingStatus(
   return adminAction(async ({ admin }) => {
     const { data: booking } = await admin
       .from("bookings")
-      .select("id, status")
+      .select(
+        "id, status, customer_id, deposit_paid_at, slot_start, quote_requests(services(name))"
+      )
       .eq("id", bookingId)
       .single();
     if (!booking) throw new Error("Booking not found.");
@@ -40,10 +43,27 @@ export async function updateBookingStatus(
     }
 
     const patch: TablesUpdate<"bookings"> = { status: toStatus };
-    if (toStatus === "paid") patch.deposit_paid_at = new Date().toISOString();
+    // Moving into 'booked' means the deposit is in and the job is locked —
+    // stamp the deposit time (if not already) and confirm with the customer.
+    if (toStatus === "booked" && !booking.deposit_paid_at) {
+      patch.deposit_paid_at = new Date().toISOString();
+    }
 
     const { error } = await admin.from("bookings").update(patch).eq("id", bookingId);
     if (error) throw new Error(error.message);
+
+    const serviceName =
+      booking.quote_requests?.services?.name ?? "your job";
+    if (toStatus === "booked") {
+      await notifyCustomer(admin, booking.customer_id, "booking_confirmed", {
+        service: serviceName,
+        slotStart: booking.slot_start,
+      });
+    } else if (toStatus === "completed") {
+      await notifyCustomer(admin, booking.customer_id, "payment_due", {
+        service: serviceName,
+      });
+    }
 
     revalidatePath("/admin/bookings");
     revalidatePath("/admin/calendar");

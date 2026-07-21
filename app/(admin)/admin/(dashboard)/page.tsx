@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { formatInTimeZone } from "date-fns-tz";
-import { CalendarClock, FileClock, TrendingUp, Wrench } from "lucide-react";
+import { BellRing, CalendarClock, FileClock, TrendingUp, Wrench } from "lucide-react";
 import { getDashboardData, type UpcomingBooking } from "@/lib/admin/dashboard-data";
 import { formatAud } from "@/lib/quote/estimate";
 import { BUSINESS_TIME_ZONE } from "@/lib/slots";
@@ -55,6 +56,21 @@ export default async function AdminDashboardPage() {
         </div>
         {!demo && <NewRequestsWatcher />}
       </div>
+
+      {stats.awaitingConfirmation > 0 && (
+        <Link
+          href="/admin/bookings"
+          className="flex items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900 transition-colors hover:bg-amber-100"
+        >
+          <BellRing className="size-5 shrink-0" />
+          <span className="text-sm font-medium">
+            {stats.awaitingConfirmation} customer
+            {stats.awaitingConfirmation > 1 ? "s" : ""} accepted their quote — take
+            the deposit and move the job to <span className="font-semibold">Booked</span>{" "}
+            to confirm.
+          </span>
+        </Link>
+      )}
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {cards.map((card) => (

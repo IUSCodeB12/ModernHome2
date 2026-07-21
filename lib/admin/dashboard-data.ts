@@ -9,6 +9,8 @@ export type DashboardStats = {
   jobsThisWeek: number;
   revenueThisMonthCents: number;
   pendingQuotes: number;
+  /** Bookings the customer has accepted — awaiting deposit + confirmation. */
+  awaitingConfirmation: number;
 };
 
 export type UpcomingBooking = Pick<
@@ -43,6 +45,7 @@ export async function getDashboardData(): Promise<{
         jobsThisWeek: 2,
         revenueThisMonthCents: 128000,
         pendingQuotes: quotes.filter((q) => q.status === "pending").length,
+        awaitingConfirmation: 1,
       },
       today: [demoBooking],
       tomorrow: [],
@@ -63,7 +66,7 @@ export async function getDashboardData(): Promise<{
   const bookingSelect =
     "id, slot_start, slot_end, status, suburb, address_line1, profiles(full_name, phone), quote_requests(services(name))";
 
-  const [pendingRes, weekRes, invoiceRes, todayRes, tomorrowRes] = await Promise.all([
+  const [pendingRes, weekRes, invoiceRes, todayRes, tomorrowRes, acceptedRes] = await Promise.all([
     supabase.from("quote_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
     supabase
       .from("bookings")
@@ -90,6 +93,10 @@ export async function getDashboardData(): Promise<{
       .lt("slot_start", tomorrowEnd.toISOString())
       .neq("status", "cancelled")
       .order("slot_start"),
+    supabase
+      .from("bookings")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "approved"),
   ]);
 
   const revenueThisMonthCents = (invoiceRes.data ?? []).reduce(
@@ -103,6 +110,7 @@ export async function getDashboardData(): Promise<{
       jobsThisWeek: weekRes.count ?? 0,
       revenueThisMonthCents,
       pendingQuotes: pendingRes.count ?? 0,
+      awaitingConfirmation: acceptedRes.count ?? 0,
     },
     today: (todayRes.data ?? []) as unknown as UpcomingBooking[],
     tomorrow: (tomorrowRes.data ?? []) as unknown as UpcomingBooking[],

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { adminAction, type ActionResult } from "@/lib/admin/guard";
 import { calcInvoiceTotals, normalizeLineItems } from "@/lib/invoice/calc";
-import { sendEmail } from "@/lib/email/send";
+import { notifyCustomer } from "@/lib/email/notify";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 
 const idSchema = z.object({ quoteId: z.string().min(1) });
@@ -164,23 +164,3 @@ async function moveBookingToQuoted(admin: Admin, quoteId: string) {
     .eq("status", "enquiry");
 }
 
-async function notifyCustomer(
-  admin: Admin,
-  customerId: string,
-  template: Parameters<typeof sendEmail>[0]["template"],
-  data: Record<string, unknown>
-) {
-  const { data: authUser } = await admin.auth.admin.getUserById(customerId);
-  const to = authUser?.user?.email;
-  if (!to) return;
-  // TODO(resend): sendEmail is a stub until Phase 4.
-  await sendEmail({
-    to,
-    template,
-    subject:
-      template === "quote_rejected"
-        ? "An update on your ModernHome quote"
-        : "Your ModernHome quote is ready",
-    data,
-  });
-}
