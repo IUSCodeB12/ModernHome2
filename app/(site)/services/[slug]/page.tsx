@@ -4,7 +4,7 @@ import { ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ArViewer } from "@/components/ar/ar-viewer";
 import { EstimatePreview } from "@/components/services/estimate-preview";
-import { getServiceBySlug } from "@/lib/services-data";
+import { getServiceBySlug } from "@/lib/services/data";
 import { formatAud, parseOptions } from "@/lib/quote/estimate";
 
 export const dynamic = "force-dynamic";

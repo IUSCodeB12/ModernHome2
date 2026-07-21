@@ -8,7 +8,7 @@ import { Testimonials } from "@/components/home/testimonials";
 import { Faq } from "@/components/home/faq";
 import { RecentJobs } from "@/components/home/recent-jobs";
 import { CtaFinale } from "@/components/home/cta-finale";
-import { getHomeData } from "@/lib/home-data";
+import { getHomeData } from "@/lib/home/data";
 
 export const dynamic = "force-dynamic";
 

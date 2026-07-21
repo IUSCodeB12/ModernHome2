@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { BeforeAfterSlider } from "@/components/gallery/before-after-slider";
 import { cn } from "@/lib/utils";
-import type { GalleryFilter, GalleryItem } from "@/lib/gallery-data";
+import type { GalleryFilter, GalleryItem } from "@/lib/gallery/data";
 
 export function GalleryGrid({
   items,

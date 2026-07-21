@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
-import { getActiveServices } from "@/lib/services-data";
+import { getActiveServices } from "@/lib/services/data";
 import type { ServiceWithQuestions } from "@/lib/quote/types";
 import type { Tables } from "@/lib/database.types";
 

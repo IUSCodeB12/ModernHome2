@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Reveal } from "@/components/home/reveal";
 import { SectionHeader } from "@/components/home/section-header";
-import type { FeaturedItem } from "@/lib/home-data";
+import type { FeaturedItem } from "@/lib/home/data";
 
 function Media({ url, label }: { url: string; label: string }) {
   if (url) {

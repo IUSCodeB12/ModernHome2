@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getActiveServices } from "@/lib/services-data";
+import { getActiveServices } from "@/lib/services/data";
 
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://modern-home2.vercel.app";

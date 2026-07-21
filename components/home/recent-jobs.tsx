@@ -1,5 +1,5 @@
 import { MapPin } from "lucide-react";
-import type { RecentJob } from "@/lib/home-data";
+import type { RecentJob } from "@/lib/home/data";
 
 /**
  * Slow marquee of recently completed jobs. Duplicated inline so the loop is

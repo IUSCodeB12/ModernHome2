@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Boxes } from "lucide-react";
-import { getActiveServices } from "@/lib/services-data";
+import { getActiveServices } from "@/lib/services/data";
 import { formatAud } from "@/lib/quote/estimate";
 
 export const dynamic = "force-dynamic";

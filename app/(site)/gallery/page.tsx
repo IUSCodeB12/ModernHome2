@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GalleryGrid } from "@/components/gallery/gallery-grid";
-import { getGalleryItems } from "@/lib/gallery-data";
+import { getGalleryItems } from "@/lib/gallery/data";
 
 export const dynamic = "force-dynamic";
 
