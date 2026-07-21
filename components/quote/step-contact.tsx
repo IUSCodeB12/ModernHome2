@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { OtpInput } from "@/components/auth/otp-input";
+import { ResendTimer } from "@/components/auth/resend-timer";
 import { createClient } from "@/lib/supabase/client";
 import type { ContactDetails } from "@/lib/quote/wizard-state";
 
@@ -86,14 +88,14 @@ function InlineAuth({
     }
   }
 
-  async function verifyCode() {
+  async function verifyCode(token = code) {
     setError(null);
     setBusy(true);
     try {
       const supabase = createClient();
       const { error } = await supabase.auth.verifyOtp({
         email,
-        token: code.trim(),
+        token: token.trim(),
         type: "email",
       });
       if (error) {
@@ -141,27 +143,25 @@ function InlineAuth({
         />
       </div>
       {phase === "codeSent" ? (
-        <div className="space-y-2">
-          <Label htmlFor="wizard-otp">Enter the 6-digit code we emailed you</Label>
-          <div className="flex gap-2">
-            <Input
-              id="wizard-otp"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              placeholder="123456"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="max-w-36 text-center tracking-widest"
-            />
-            <Button type="button" onClick={verifyCode} disabled={busy || code.length < 6}>
-              {busy ? "Checking…" : "Verify"}
-            </Button>
-          </div>
+        <div className="space-y-3">
+          <Label>Enter the 6-digit code we emailed you</Label>
+          <OtpInput
+            value={code}
+            onChange={setCode}
+            onComplete={(v) => verifyCode(v)}
+            disabled={busy}
+            invalid={!!error}
+          />
+          {busy && <p className="text-sm text-muted-foreground">Checking…</p>}
+          <ResendTimer onResend={sendCode} disabled={busy} />
           <button
             type="button"
-            className="text-xs text-muted-foreground underline"
-            onClick={() => setPhase("signedOut")}
+            className="mx-auto block text-xs text-muted-foreground underline"
+            onClick={() => {
+              setCode("");
+              setError(null);
+              setPhase("signedOut");
+            }}
           >
             Use a different email
           </button>
