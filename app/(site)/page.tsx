@@ -8,7 +8,9 @@ import { Testimonials } from "@/components/home/testimonials";
 import { Faq } from "@/components/home/faq";
 import { RecentJobs } from "@/components/home/recent-jobs";
 import { CtaFinale } from "@/components/home/cta-finale";
+import { JsonLd } from "@/components/seo/json-ld";
 import { getHomeData } from "@/lib/home/data";
+import { localBusinessLd } from "@/lib/seo/json-ld";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +19,7 @@ export default async function HomePage() {
 
   return (
     <>
+      <JsonLd data={localBusinessLd()} />
       <Hero />
       <TrustStrip />
       <HowItWorks />
