@@ -4,13 +4,15 @@ import { isAdmin } from "@/lib/auth/roles";
 import type { Database } from "@/lib/database.types";
 
 const LOGIN_PATH = "/admin/login";
+/** Admin routes reachable while signed out (auth screens). */
+const ADMIN_PUBLIC_PATHS = new Set([LOGIN_PATH, "/admin/reset"]);
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const pathname = request.nextUrl.pathname;
   const isProtectedAdminRoute =
-    pathname.startsWith("/admin") && pathname !== LOGIN_PATH;
+    pathname.startsWith("/admin") && !ADMIN_PUBLIC_PATHS.has(pathname);
   const isPortalRoute = pathname.startsWith("/portal");
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -53,6 +55,12 @@ export async function updateSession(request: NextRequest) {
 
   if (isProtectedAdminRoute) {
     if (!user || !(await isAdmin(supabase, user.id))) {
+      return redirectToLogin(request);
+    }
+    // Enforce 2FA (aal2) when the admin has enrolled a TOTP factor.
+    const { data: aal } =
+      await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
       return redirectToLogin(request);
     }
   }
