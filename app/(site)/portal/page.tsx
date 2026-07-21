@@ -10,6 +10,11 @@ import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  title: "My bookings",
+  robots: { index: false, follow: false },
+};
+
 export default async function PortalPage() {
   if (!isSupabaseConfigured()) {
     return (

@@ -12,6 +12,11 @@ import {
 } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 
+export const metadata = {
+  title: "Admin",
+  robots: { index: false, follow: false },
+};
+
 const sidebarLinks = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/bookings", label: "Bookings", icon: CalendarCheck },

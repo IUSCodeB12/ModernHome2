@@ -7,6 +7,12 @@ import { createAdminClient, isSupabaseConfigured } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  title: "Get an instant quote",
+  description:
+    "Answer a few questions, add photos and lock in a 2-hour arrival window. Fixed-price quote in minutes — no callout fees.",
+};
+
 async function getWizardData(): Promise<QuoteWizardData> {
   if (!isSupabaseConfigured()) {
     return getDemoWizardData();

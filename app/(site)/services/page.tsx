@@ -5,6 +5,12 @@ import { formatAud } from "@/lib/quote/estimate";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  title: "Services & pricing",
+  description:
+    "Browse our home installation services — TV mounting, floating cabinets, showcase cabinets, LED strip lighting and heater installation. Fixed prices, instant online quotes.",
+};
+
 export default async function ServicesPage() {
   const services = await getActiveServices();
 

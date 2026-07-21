@@ -6,6 +6,12 @@ import { getGalleryItems } from "@/lib/gallery-data";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  title: "Our work",
+  description:
+    "Before & after photos of our recent home installations — drag the slider to see the transformation.",
+};
+
 export default async function GalleryPage() {
   const { items, filters, demo } = await getGalleryItems();
 

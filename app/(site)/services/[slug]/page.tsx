@@ -9,6 +9,22 @@ import { formatAud, parseOptions } from "@/lib/quote/estimate";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const service = await getServiceBySlug(slug);
+  if (!service) return { title: "Service not found" };
+  return {
+    title: service.name,
+    description:
+      service.description ??
+      `Get an instant, fixed-price quote for ${service.name} and book online.`,
+  };
+}
+
 export default async function ServiceDetailPage({
   params,
 }: {
