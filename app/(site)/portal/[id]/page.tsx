@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { formatInTimeZone } from "date-fns-tz";
 import { ArrowLeft } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
+import { QuoteResponse } from "@/components/portal/quote-response";
 import { formatAud, parseOptions, type Answers } from "@/lib/quote/estimate";
 import { BUSINESS_TIME_ZONE } from "@/lib/slots";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
@@ -88,6 +89,15 @@ export default async function PortalDetailPage({
         Requested{" "}
         {formatInTimeZone(new Date(quote.created_at), BUSINESS_TIME_ZONE, "d MMM yyyy")}
       </p>
+
+      {booking?.status === "quoted" && quote.final_quote_cents && (
+        <div className="mt-6">
+          <QuoteResponse
+            quoteId={quote.id}
+            amount={formatAud(quote.final_quote_cents)}
+          />
+        </div>
+      )}
 
       <section className="mt-6 rounded-xl border p-4">
         <h2 className="font-medium">Quote</h2>
