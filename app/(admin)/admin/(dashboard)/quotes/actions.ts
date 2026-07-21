@@ -52,7 +52,11 @@ export async function approveQuote(
 
     const { error } = await admin
       .from("quote_requests")
-      .update({ status: "approved", final_quote_cents: finalQuoteCents })
+      .update({
+        status: "approved",
+        final_quote_cents: finalQuoteCents,
+        quote_line_items: [],
+      })
       .eq("id", quote.id);
     if (error) throw new Error(error.message);
 
@@ -91,7 +95,11 @@ export async function adjustQuote(
 
     const { error } = await admin
       .from("quote_requests")
-      .update({ status: "adjusted", final_quote_cents: totals.total_cents })
+      .update({
+        status: "adjusted",
+        final_quote_cents: totals.total_cents,
+        quote_line_items: items,
+      })
       .eq("id", quote.id);
     if (error) throw new Error(error.message);
 

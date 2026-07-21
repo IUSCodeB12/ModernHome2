@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { QuoteResponse } from "@/components/portal/quote-response";
 import { formatAud, parseOptions, type Answers } from "@/lib/quote/estimate";
+import { calcInvoiceTotals, type LineItem } from "@/lib/invoice/calc";
 import { BUSINESS_TIME_ZONE } from "@/lib/slots";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -70,6 +71,9 @@ export default async function PortalDetailPage({
   const answers = (quote.answers ?? {}) as Answers;
   const booking = quote.bookings;
 
+  const lineItems = (quote.quote_line_items ?? []) as LineItem[];
+  const totals = lineItems.length ? calcInvoiceTotals(lineItems) : null;
+
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:py-12">
       <Link
@@ -101,8 +105,50 @@ export default async function PortalDetailPage({
 
       <section className="mt-6 rounded-xl border p-4">
         <h2 className="font-medium">Quote</h2>
+
+        {totals && (
+          <div className="mt-3 overflow-hidden rounded-lg border">
+            <div className="flex items-center justify-between bg-muted/50 px-3 py-2 text-xs font-medium text-muted-foreground">
+              <span>What&apos;s included</span>
+              <span>Amount</span>
+            </div>
+            <ul className="divide-y">
+              {lineItems.map((item, i) => (
+                <li key={i} className="flex items-start justify-between gap-4 px-3 py-2">
+                  <span className="text-sm">
+                    {item.description}
+                    {item.quantity > 1 && (
+                      <span className="text-muted-foreground">
+                        {" "}
+                        × {item.quantity} @ {formatAud(item.unit_price_cents)}
+                      </span>
+                    )}
+                  </span>
+                  <span className="whitespace-nowrap text-sm font-medium">
+                    {formatAud(item.total_cents)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <div className="divide-y border-t bg-muted/30 px-3">
+              <div className="flex justify-between py-1.5 text-sm text-muted-foreground">
+                <span>Subtotal (ex GST)</span>
+                <span>{formatAud(totals.subtotal_cents)}</span>
+              </div>
+              <div className="flex justify-between py-1.5 text-sm text-muted-foreground">
+                <span>GST (10%)</span>
+                <span>{formatAud(totals.gst_cents)}</span>
+              </div>
+              <div className="flex justify-between py-2 text-sm font-semibold">
+                <span>Total</span>
+                <span>{formatAud(totals.total_cents)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mt-2 divide-y">
-          {quote.final_quote_cents ? (
+          {totals ? null : quote.final_quote_cents ? (
             <Row label="Final quote" value={formatAud(quote.final_quote_cents)} />
           ) : quote.estimate_low_cents && quote.estimate_high_cents ? (
             <Row

@@ -153,6 +153,7 @@ export type Database = {
           status: Database["public"]["Enums"]["quote_status"];
           admin_notes: string | null;
           final_quote_cents: number | null;
+          quote_line_items: Json;
           expires_at: string | null;
           created_at: string;
           updated_at: string;
@@ -168,6 +169,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["quote_status"];
           admin_notes?: string | null;
           final_quote_cents?: number | null;
+          quote_line_items?: Json;
           expires_at?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -183,6 +185,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["quote_status"];
           admin_notes?: string | null;
           final_quote_cents?: number | null;
+          quote_line_items?: Json;
           expires_at?: string | null;
           created_at?: string;
           updated_at?: string;
