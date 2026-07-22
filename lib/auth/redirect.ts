@@ -7,7 +7,12 @@ export function safeNext(
   fallback = "/portal"
 ): string {
   if (!next) return fallback;
-  // Reject protocol-relative (`//evil.com`), absolute URLs, and non-paths.
-  if (!next.startsWith("/") || next.startsWith("//")) return fallback;
+  // Must be a rooted path.
+  if (!next.startsWith("/")) return fallback;
+  // Reject protocol-relative (`//evil.com`) and the backslash variants
+  // (`/\evil.com`) that some browsers normalise to an origin.
+  if (next.length > 1 && (next[1] === "/" || next[1] === "\\")) return fallback;
+  // Reject whitespace / control chars (newline/tab smuggling past URL parsers).
+  if (/\s/.test(next)) return fallback;
   return next;
 }
