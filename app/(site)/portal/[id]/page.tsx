@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { QuoteResponse } from "@/components/portal/quote-response";
 import { PaymentPanel } from "@/components/portal/payment-panel";
+import { RescheduleRequest } from "@/components/portal/reschedule-request";
 import { formatAud, parseOptions, type Answers } from "@/lib/quote/estimate";
 import { calcInvoiceTotals, type LineItem } from "@/lib/invoice/calc";
 import { BUSINESS_TIME_ZONE } from "@/lib/slots";
@@ -223,6 +224,14 @@ export default async function PortalDetailPage({
               <Row label="Access notes" value={booking.access_notes} />
             )}
           </div>
+          {(booking.status === "approved" || booking.status === "booked") && (
+            <div className="mt-4 border-t pt-4">
+              <RescheduleRequest
+                quoteId={quote.id}
+                alreadyRequested={!!booking.reschedule_requested_at}
+              />
+            </div>
+          )}
         </section>
       )}
     </div>

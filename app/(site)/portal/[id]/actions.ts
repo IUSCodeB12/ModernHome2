@@ -63,3 +63,49 @@ export async function respondToQuote(
         : "Quote declined. No worries — reach out any time.",
   };
 }
+
+/**
+ * Customer flags that they'd like a different arrival time. Records the request
+ * (+ optional note) on their own booking; an admin picks a new slot.
+ */
+export async function requestReschedule(
+  quoteId: string,
+  note: string
+): Promise<QuoteResponseState> {
+  if (!isSupabaseConfigured()) return { error: "Not available right now." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Please sign in again." };
+
+  const { data: quote } = await supabase
+    .from("quote_requests")
+    .select("id, bookings(id, status, customer_id)")
+    .eq("id", quoteId)
+    .maybeSingle();
+
+  const booking = quote?.bookings;
+  if (!quote || !booking) return { error: "We couldn't find that booking." };
+  if (booking.customer_id !== user.id) return { error: "Not authorised." };
+
+  const status = booking.status as BookingStatus;
+  if (!["approved", "booked"].includes(status)) {
+    return { error: "This booking can't be rescheduled here — please contact us." };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("bookings")
+    .update({
+      reschedule_requested_at: new Date().toISOString(),
+      reschedule_note: note.trim().slice(0, 500) || null,
+    })
+    .eq("id", booking.id);
+  if (error) return { error: "Something went wrong — please try again." };
+
+  revalidatePath(`/portal/${quoteId}`);
+  revalidatePath("/portal");
+  return { ok: "Thanks — we'll be in touch to arrange a new time." };
+}

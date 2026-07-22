@@ -17,7 +17,9 @@ export type EmailTemplate =
   | "quote_rejected"
   | "booking_confirmed"
   | "payment_due"
-  | "receipt_ready";
+  | "receipt_ready"
+  | "reschedule_requested"
+  | "reschedule_confirmed";
 
 export type SendEmailInput = {
   to: string;

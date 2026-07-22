@@ -12,6 +12,8 @@ const SUBJECTS: Record<EmailTemplate, string> = {
   booking_confirmed: "You're booked in with ModernHome",
   payment_due: "Payment for your ModernHome job",
   receipt_ready: "Your ModernHome receipt",
+  reschedule_requested: "Reschedule request received",
+  reschedule_confirmed: "Your ModernHome visit has been rescheduled",
 };
 
 /**
