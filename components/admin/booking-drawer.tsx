@@ -25,6 +25,7 @@ import {
   type BookingStatus,
 } from "@/lib/bookings/status";
 import {
+  assignInstaller,
   rescheduleBooking,
   updateBookingStatus,
 } from "@/app/(admin)/admin/(dashboard)/bookings/actions";
@@ -41,6 +42,41 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 
 const toLocalInput = (iso: string | null) =>
   iso ? formatInTimeZone(new Date(iso), BUSINESS_TIME_ZONE, "yyyy-MM-dd'T'HH:mm") : "";
+
+/** Assign an installer to the job (free-text, single-tradie for now). */
+function AssignControl({ booking }: { booking: AdminBookingRow }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [name, setName] = useState(booking.assigned_installer ?? "");
+
+  function save() {
+    startTransition(async () => {
+      const res = await assignInstaller({ bookingId: booking.id, installer: name });
+      if (res.ok) {
+        toast.success(name.trim() ? `Assigned to ${name.trim()}.` : "Assignment cleared.");
+        router.refresh();
+      } else {
+        toast.error(res.error);
+      }
+    });
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-medium">Assigned installer</p>
+      <div className="flex gap-2">
+        <Input
+          value={name}
+          placeholder="Installer name"
+          onChange={(e) => setName(e.target.value)}
+        />
+        <Button size="sm" variant="outline" disabled={pending} onClick={save}>
+          Save
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 /** Two datetime inputs (Melbourne wall time) to set a new arrival window. */
 function RescheduleControl({ booking }: { booking: AdminBookingRow }) {
@@ -199,6 +235,10 @@ export function BookingDrawer({
                   </Button>
                 )}
               </div>
+
+              <Separator />
+
+              <AssignControl key={`assign-${booking.id}`} booking={booking} />
 
               <Separator />
 

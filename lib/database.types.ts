@@ -219,6 +219,7 @@ export type Database = {
           deposit_paid_at: string | null;
           reschedule_requested_at: string | null;
           reschedule_note: string | null;
+          assigned_installer: string | null;
           stripe_checkout_session_id: string | null;
           address_line1: string | null;
           suburb: string | null;
@@ -238,6 +239,7 @@ export type Database = {
           deposit_paid_at?: string | null;
           reschedule_requested_at?: string | null;
           reschedule_note?: string | null;
+          assigned_installer?: string | null;
           stripe_checkout_session_id?: string | null;
           address_line1?: string | null;
           suburb?: string | null;
@@ -257,6 +259,7 @@ export type Database = {
           deposit_paid_at?: string | null;
           reschedule_requested_at?: string | null;
           reschedule_note?: string | null;
+          assigned_installer?: string | null;
           stripe_checkout_session_id?: string | null;
           address_line1?: string | null;
           suburb?: string | null;

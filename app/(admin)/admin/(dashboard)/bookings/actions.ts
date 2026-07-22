@@ -86,6 +86,27 @@ export async function updateBookingStatus(
   });
 }
 
+/** Assign (or clear) the installer for a booking. */
+export async function assignInstaller(
+  input: { bookingId: string; installer: string }
+): Promise<ActionResult<{ installer: string | null }>> {
+  const bookingId = z.string().min(1).safeParse(input.bookingId);
+  if (!bookingId.success) return { ok: false, error: "Invalid request." };
+  const installer = input.installer.trim().slice(0, 120) || null;
+
+  if (!isSupabaseConfigured()) return { ok: true, data: { installer } };
+
+  return adminAction(async ({ admin }) => {
+    const { error } = await admin
+      .from("bookings")
+      .update({ assigned_installer: installer })
+      .eq("id", bookingId.data);
+    if (error) throw new Error(error.message);
+    revalidatePath("/admin/bookings");
+    return { installer };
+  });
+}
+
 const rescheduleSchema = z.object({
   bookingId: z.string().min(1),
   slotStart: z.string().datetime(),
