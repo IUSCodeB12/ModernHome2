@@ -4,6 +4,7 @@ import { formatInTimeZone } from "date-fns-tz";
 import { ArrowLeft } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { QuoteResponse } from "@/components/portal/quote-response";
+import { PaymentPanel } from "@/components/portal/payment-panel";
 import { formatAud, parseOptions, type Answers } from "@/lib/quote/estimate";
 import { calcInvoiceTotals, type LineItem } from "@/lib/invoice/calc";
 import { BUSINESS_TIME_ZONE } from "@/lib/slots";
@@ -60,7 +61,9 @@ export default async function PortalDetailPage({
   // RLS scopes this to the customer's own rows — anyone else's id 404s.
   const { data: quote } = await supabase
     .from("quote_requests")
-    .select("*, services(name, price_unit, service_questions(*)), bookings(*)")
+    .select(
+      "*, services(name, price_unit, service_questions(*)), bookings(*, invoices(id, status))"
+    )
     .eq("id", id)
     .maybeSingle();
 
@@ -73,6 +76,12 @@ export default async function PortalDetailPage({
 
   const lineItems = (quote.quote_line_items ?? []) as LineItem[];
   const totals = lineItems.length ? calcInvoiceTotals(lineItems) : null;
+
+  const invoice = booking?.invoices?.[0];
+  const showPayment =
+    booking?.status === "completed" ||
+    booking?.status === "invoiced" ||
+    booking?.status === "paid";
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:py-12">
@@ -99,6 +108,17 @@ export default async function PortalDetailPage({
           <QuoteResponse
             quoteId={quote.id}
             amount={formatAud(quote.final_quote_cents)}
+          />
+        </div>
+      )}
+
+      {showPayment && (
+        <div className="mt-6">
+          <PaymentPanel
+            quoteId={quote.id}
+            amount={formatAud(quote.final_quote_cents ?? 0)}
+            paid={booking?.status === "paid" || invoice?.status === "paid"}
+            hasInvoice={!!invoice}
           />
         </div>
       )}

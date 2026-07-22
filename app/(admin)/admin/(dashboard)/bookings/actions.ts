@@ -6,6 +6,10 @@ import { adminAction, type ActionResult } from "@/lib/admin/guard";
 import { canTransition, type BookingStatus } from "@/lib/bookings/status";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 import { notifyCustomer } from "@/lib/email/notify";
+import {
+  ensureInvoiceForBooking,
+  markInvoicePaidForBooking,
+} from "@/lib/invoice/create";
 import type { TablesUpdate } from "@/lib/database.types";
 
 const schema = z.object({
@@ -63,11 +67,21 @@ export async function updateBookingStatus(
       await notifyCustomer(admin, booking.customer_id, "payment_due", {
         service: serviceName,
       });
+    } else if (toStatus === "invoiced") {
+      // Auto-create the invoice from the accepted quote line items.
+      await ensureInvoiceForBooking(admin, bookingId);
+    } else if (toStatus === "paid") {
+      await markInvoicePaidForBooking(admin, bookingId);
+      await notifyCustomer(admin, booking.customer_id, "receipt_ready", {
+        service: serviceName,
+      });
     }
 
     revalidatePath("/admin/bookings");
     revalidatePath("/admin/calendar");
     revalidatePath("/admin");
+    revalidatePath("/admin/invoices");
+    revalidatePath(`/portal`);
     return { status: toStatus };
   });
 }
