@@ -1,5 +1,6 @@
 import { formatInTimeZone } from "date-fns-tz";
 import { getInvoices } from "@/lib/admin/invoices-data";
+import { InvoiceEditor } from "@/components/admin/invoice-editor";
 import { formatAud } from "@/lib/quote/estimate";
 import { BUSINESS_TIME_ZONE } from "@/lib/slots";
 
@@ -39,6 +40,7 @@ export default async function AdminInvoicesPage() {
                 <th className="px-4 py-2 font-medium">Date</th>
                 <th className="px-4 py-2 text-right font-medium">Total</th>
                 <th className="px-4 py-2 font-medium">Status</th>
+                <th className="px-4 py-2 text-right font-medium">Edit</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -61,6 +63,15 @@ export default async function AdminInvoicesPage() {
                     >
                       {inv.status}
                     </span>
+                  </td>
+                  <td className="px-4 py-2 text-right">
+                    {inv.status !== "paid" && (
+                      <InvoiceEditor
+                        invoiceId={inv.id}
+                        invoiceNumber={inv.invoice_number}
+                        lineItems={inv.lineItems}
+                      />
+                    )}
                   </td>
                 </tr>
               ))}

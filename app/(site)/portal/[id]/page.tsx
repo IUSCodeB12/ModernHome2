@@ -62,7 +62,7 @@ export default async function PortalDetailPage({
   const { data: quote } = await supabase
     .from("quote_requests")
     .select(
-      "*, services(name, price_unit, service_questions(*)), bookings(*, invoices(id, status))"
+      "*, services(name, price_unit, service_questions(*)), bookings(*, invoices(id, status, total_cents))"
     )
     .eq("id", id)
     .maybeSingle();
@@ -116,7 +116,7 @@ export default async function PortalDetailPage({
         <div className="mt-6">
           <PaymentPanel
             quoteId={quote.id}
-            amount={formatAud(quote.final_quote_cents ?? 0)}
+            amount={formatAud(invoice?.total_cents ?? quote.final_quote_cents ?? 0)}
             paid={booking?.status === "paid" || invoice?.status === "paid"}
             hasInvoice={!!invoice}
           />

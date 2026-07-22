@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
+import type { LineItem } from "@/lib/invoice/calc";
 import type { Enums } from "@/lib/database.types";
 
 export type AdminInvoiceRow = {
@@ -11,6 +12,7 @@ export type AdminInvoiceRow = {
   paid_at: string | null;
   customerName: string;
   serviceName: string;
+  lineItems: LineItem[];
 };
 
 export async function getInvoices(): Promise<{
@@ -30,6 +32,9 @@ export async function getInvoices(): Promise<{
           paid_at: new Date().toISOString(),
           customerName: "Jordan Nguyen",
           serviceName: "TV Wall Mounting",
+          lineItems: [
+            { description: "TV Wall Mounting — installation", quantity: 1, unit_price_cents: 130000, total_cents: 130000 },
+          ],
         },
         {
           id: "demo-inv-2",
@@ -40,6 +45,9 @@ export async function getInvoices(): Promise<{
           paid_at: null,
           customerName: "Priya Sharma",
           serviceName: "LED Strip Lighting",
+          lineItems: [
+            { description: "LED Strip Lighting — 6m", quantity: 6, unit_price_cents: 10167, total_cents: 61000 },
+          ],
         },
       ],
     };
@@ -49,7 +57,7 @@ export async function getInvoices(): Promise<{
   const { data } = await supabase
     .from("invoices")
     .select(
-      "id, invoice_number, total_cents, status, created_at, paid_at, bookings(quote_requests(profiles(full_name), services(name)))"
+      "id, invoice_number, total_cents, status, created_at, paid_at, line_items, bookings(quote_requests(profiles(full_name), services(name)))"
     )
     .order("created_at", { ascending: false });
 
@@ -64,6 +72,7 @@ export async function getInvoices(): Promise<{
       paid_at: inv.paid_at,
       customerName: quote?.profiles?.full_name ?? "Customer",
       serviceName: quote?.services?.name ?? "—",
+      lineItems: (inv.line_items ?? []) as LineItem[],
     };
   });
 
