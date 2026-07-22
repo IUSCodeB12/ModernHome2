@@ -3,20 +3,26 @@
 import { Suspense, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ShieldCheck, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { StaticHero } from "@/components/home/static-hero";
 
-// Lazy-load the 3D canvas — never server-rendered, never in the main bundle.
-const WovenCanvas = dynamic(() => import("@/components/home/woven-canvas"), {
+// Lazy-load the 3D room canvas — never server-rendered, never in the main bundle.
+const HeroRoomCanvas = dynamic(() => import("@/components/home/hero-room-canvas"), {
   ssr: false,
-  loading: () => <StaticHero />,
+  loading: () => <RoomPoster />,
 });
 
-/**
- * Low-end heuristic: few cores or reduced-motion preference → static hero.
- * Keeps Lighthouse mobile happy on weak devices.
- */
+/** Warm dark placeholder the room canvas fades into (LCP-friendly, no image). */
+function RoomPoster() {
+  return (
+    <div className="absolute inset-0 bg-[#1a1714]">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_60%_35%,rgba(255,177,99,0.18),transparent_60%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_25%_15%,rgba(201,162,75,0.12),transparent_55%)]" />
+    </div>
+  );
+}
+
+/** Low-end / reduced-motion → static poster, no 3D. */
 function useHeroMode(): "static" | "3d" | "pending" {
   const [mode, setMode] = useState<"static" | "3d" | "pending">("pending");
   useEffect(() => {
@@ -28,12 +34,7 @@ function useHeroMode(): "static" | "3d" | "pending" {
   return mode;
 }
 
-/**
- * Mount the heavy 3D bundle only on first user intent (or after a long
- * idle). Keeps three.js entirely out of the page-load window, so
- * Lighthouse mobile scores against the static hero while real users get
- * the scene the moment they move a finger or the mouse.
- */
+/** Mount the heavy 3D bundle only on first intent / after idle — keeps three.js out of load. */
 function useDeferredMount(enabled: boolean): boolean {
   const [mount, setMount] = useState(false);
   useEffect(() => {
@@ -52,7 +53,7 @@ function useDeferredMount(enabled: boolean): boolean {
       cleanup();
       setMount(true);
     };
-    const timer = window.setTimeout(start, 8000); // idle fallback
+    const timer = window.setTimeout(start, 6000);
     const cleanup = () => {
       events.forEach((e) => window.removeEventListener(e, start));
       window.clearTimeout(timer);
@@ -70,54 +71,57 @@ export function Hero() {
   const sceneReady = useDeferredMount(mode === "3d");
 
   return (
-    <section className="relative h-[88vh] min-h-[560px] w-full overflow-hidden bg-[#141210]">
-      {/* Warm depth behind the woven light */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,177,99,0.10),transparent_65%)]" />
-
-      {/* Scene / fallback */}
-      {mode === "3d" && sceneReady ? (
-        <Suspense fallback={<StaticHero />}>
-          <div className="absolute inset-0">
-            <WovenCanvas />
-          </div>
-        </Suspense>
-      ) : (
-        <StaticHero />
-      )}
-
-      {/* Overlay — CTA visible at all times */}
-      <div className="pointer-events-none absolute inset-0 flex flex-col justify-center">
-        <div className="mx-auto w-full max-w-6xl px-4 text-center">
-          <p className="mx-auto mb-4 w-fit rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.2em] text-white/70 backdrop-blur">
-            {mode === "3d"
-              ? "Move your cursor · it's alive"
-              : "Renovations · Repairs · Installations"}
+    <section className="relative w-full overflow-hidden">
+      <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-4 py-16 sm:py-20 md:grid-cols-2 md:gap-8 lg:py-24">
+        {/* Editorial column */}
+        <div className="order-2 md:order-1">
+          <p className="w-fit text-[0.7rem] font-medium uppercase tracking-[0.16em] text-brand">
+            Premium installs · Melbourne
           </p>
-          <h1 className="mx-auto max-w-3xl text-5xl text-white drop-shadow sm:text-7xl md:text-8xl">
-            Your home, done properly.
+          <h1 className="mt-4 font-serif text-5xl leading-[0.98] tracking-tight text-foreground sm:text-6xl lg:text-7xl">
+            Your home,
+            <br />
+            done properly.
           </h1>
-          <p className="mx-auto mt-5 max-w-xl text-base text-white/70 sm:text-lg">
-            Renovations, repairs and installations — priced online in minutes.
+          <p className="mt-5 max-w-md text-base text-muted-foreground sm:text-lg">
+            TV mounting, cabinets, LED lighting and heating — fixed-price,
+            fully insured, and booked online in minutes.
           </p>
-          <div className="pointer-events-auto mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Button
-              asChild
-              size="lg"
-              className="bg-white text-neutral-900 shadow-xl hover:bg-white/90"
-            >
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <Button asChild size="lg">
               <Link href="/quote">
-                Get an instant quote
-                <ArrowRight />
+                Get an instant quote <ArrowRight />
               </Link>
             </Button>
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-              className="border-white/30 bg-black/20 text-white backdrop-blur hover:bg-black/40 hover:text-white"
-            >
+            <Button asChild size="lg" variant="outline">
               <Link href="/services">Browse services</Link>
             </Button>
+          </div>
+          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5">
+              <Star className="size-4 fill-brand text-brand" /> 4.9 · 200+ jobs
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <ShieldCheck className="size-4 text-brand" /> Licensed &amp; insured
+            </span>
+            <span>No callout fees</span>
+          </div>
+        </div>
+
+        {/* Room panel */}
+        <div className="order-1 md:order-2">
+          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border bg-[#1a1714] shadow-elev-3 md:aspect-[5/6] lg:aspect-[4/3]">
+            {mode === "3d" && sceneReady ? (
+              <Suspense fallback={<RoomPoster />}>
+                <div className="absolute inset-0">
+                  <HeroRoomCanvas />
+                </div>
+              </Suspense>
+            ) : (
+              <RoomPoster />
+            )}
+            {/* Brass hairline accent */}
+            <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-[#c9a24b]/20" />
           </div>
         </div>
       </div>
