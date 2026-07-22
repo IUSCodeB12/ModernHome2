@@ -149,6 +149,11 @@ export async function submitQuoteRequest(
     console.error("[quote] booking insert failed", bookingError);
     // Roll back the orphaned quote request so retries start clean.
     await admin.from("quote_requests").delete().eq("id", quoteRequest.id);
+    // 23P01 = exclusion_violation: the slot was taken between our pre-check and
+    // insert. The DB constraint is the real guard against the race.
+    if (bookingError?.code === "23P01") {
+      return { ok: false, error: "Sorry — that slot was just taken. Please pick another." };
+    }
     return { ok: false, error: "Something went wrong saving your booking. Please try again." };
   }
 
