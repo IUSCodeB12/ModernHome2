@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,11 +11,11 @@ import { OtpInput } from "@/components/auth/otp-input";
 import { ResendTimer } from "@/components/auth/resend-timer";
 import { GoogleButton, isGoogleAuthEnabled } from "@/components/auth/google-button";
 import { safeNext } from "@/lib/auth/redirect";
+import { navigateAfterAuth } from "@/lib/auth/navigate";
 
 const LAST_EMAIL_KEY = "mh-last-email";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [next, setNext] = useState("/portal");
   const [step, setStep] = useState<"email" | "otp">("email");
   const [email, setEmail] = useState("");
@@ -90,8 +89,7 @@ export default function LoginPage() {
         setTimeout(() => setInvalid(false), 400);
         return;
       }
-      router.push(next);
-      router.refresh();
+      navigateAfterAuth(next);
     } finally {
       submittedRef.current = false;
       setLoading(false);

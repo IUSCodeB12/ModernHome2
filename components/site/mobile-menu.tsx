@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, LogOut, Settings } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { navigateAfterAuth } from "@/lib/auth/navigate";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -21,13 +21,11 @@ export default function MobileMenu({
   links: { href: string; label: string }[];
   email: string | null;
 }) {
-  const router = useRouter();
 
   async function signOut() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/");
-    router.refresh();
+    navigateAfterAuth("/");
   }
 
   return (

@@ -2,9 +2,9 @@
 
 import { useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { CalendarCheck, LogOut, Settings } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { navigateAfterAuth } from "@/lib/auth/navigate";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,15 +23,13 @@ function initials(email: string): string {
 }
 
 export function UserMenu({ email }: { email: string }) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   function signOut() {
     startTransition(async () => {
       const supabase = createClient();
       await supabase.auth.signOut();
-      router.push("/");
-      router.refresh();
+      navigateAfterAuth("/");
     });
   }
 

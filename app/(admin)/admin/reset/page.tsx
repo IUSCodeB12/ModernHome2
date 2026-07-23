@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,11 +12,11 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { navigateAfterAuth } from "@/lib/auth/navigate";
 
 type Mode = "request" | "update";
 
 export default function AdminResetPage() {
-  const router = useRouter();
   const [mode, setMode] = useState<Mode>("request");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -63,8 +62,7 @@ export default function AdminResetPage() {
         setError(error.message);
         return;
       }
-      router.push("/admin");
-      router.refresh();
+      navigateAfterAuth("/admin");
     } finally {
       setBusy(false);
     }

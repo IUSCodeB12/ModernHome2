@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,11 +14,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { OtpInput } from "@/components/auth/otp-input";
+import { navigateAfterAuth } from "@/lib/auth/navigate";
 
 type Step = "password" | "mfa";
 
 export default function AdminLoginPage() {
-  const router = useRouter();
   const [step, setStep] = useState<Step>("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,8 +35,7 @@ export default function AdminLoginPage() {
   }
 
   async function finish() {
-    router.push("/admin");
-    router.refresh();
+    navigateAfterAuth("/admin");
   }
 
   // If arriving already signed in at aal1 (e.g. redirected by middleware),
