@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { StatusBadge } from "@/components/status-badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { formatAud } from "@/lib/quote/estimate";
 import { BUSINESS_TIME_ZONE } from "@/lib/slots";
 import {

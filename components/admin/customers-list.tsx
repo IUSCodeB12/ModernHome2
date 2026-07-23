@@ -5,7 +5,7 @@ import Link from "next/link";
 import { formatInTimeZone } from "date-fns-tz";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { StatusBadge } from "@/components/status-badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { formatAud } from "@/lib/quote/estimate";
 import { BUSINESS_TIME_ZONE } from "@/lib/slots";
 import type { CustomerRow } from "@/lib/admin/customers-data";

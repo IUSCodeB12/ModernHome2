@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { formatInTimeZone } from "date-fns-tz";
 import { ChevronRight } from "lucide-react";
-import { StatusBadge } from "@/components/status-badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { formatAud } from "@/lib/quote/estimate";
 import { BUSINESS_TIME_ZONE } from "@/lib/slots";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";

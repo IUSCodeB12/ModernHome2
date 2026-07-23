@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { formatInTimeZone } from "date-fns-tz";
 import { ArrowLeft } from "lucide-react";
-import { StatusBadge } from "@/components/status-badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { QuoteResponse } from "@/components/portal/quote-response";
 import { PaymentPanel } from "@/components/portal/payment-panel";
 import { RescheduleRequest } from "@/components/portal/reschedule-request";

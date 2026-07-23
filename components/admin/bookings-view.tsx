@@ -24,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { StatusBadge } from "@/components/status-badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { BookingDrawer } from "@/components/admin/booking-drawer";
 import { formatAud } from "@/lib/quote/estimate";
 import { BUSINESS_TIME_ZONE } from "@/lib/slots";

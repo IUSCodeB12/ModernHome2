@@ -34,6 +34,10 @@ docs/       Architecture, structure, feature docs
 Pages live in `app/` (App Router requirement); each feature's components live under
 `components/<feature>/`, its logic/data under `lib/<feature>/`.
 
+**Finding a feature's files:** see `docs/features.md` (the per-feature file map) —
+a feature spans `app/` + `components/` + `lib/`, and that doc indexes every file
+per feature. Folder indexes: `components/README.md`, `lib/README.md`.
+
 ## Conventions
 
 - **Filenames: kebab-case** for everything (`service-editor.tsx`, `home/data.ts`). This is

@@ -4,7 +4,7 @@ import { BellRing, CalendarClock, FileClock, TrendingUp, Wrench } from "lucide-r
 import { getDashboardData, type UpcomingBooking } from "@/lib/admin/dashboard-data";
 import { formatAud } from "@/lib/quote/estimate";
 import { BUSINESS_TIME_ZONE } from "@/lib/slots";
-import { StatusBadge } from "@/components/status-badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { NewRequestsWatcher } from "@/components/admin/new-requests-watcher";
 
 export const dynamic = "force-dynamic";

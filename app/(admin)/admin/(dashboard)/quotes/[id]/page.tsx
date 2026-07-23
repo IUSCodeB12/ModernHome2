@@ -6,7 +6,7 @@ import { getAdminQuote } from "@/lib/admin/quotes-data";
 import { answerLabel } from "@/lib/quote/answers";
 import { formatAud, type Answers } from "@/lib/quote/estimate";
 import { BUSINESS_TIME_ZONE } from "@/lib/slots";
-import { StatusBadge } from "@/components/status-badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { QuoteActions } from "@/components/admin/quote-actions";
 import { QuotePhotos } from "@/components/admin/quote-photos";
 

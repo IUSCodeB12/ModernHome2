@@ -1,60 +1,86 @@
-# Features
+# Feature map — where the code lives
 
-Each feature lists its routes, UI, and logic so you can load only what you need.
+The app is a Next.js App Router project, so a feature is spread across three
+trees by design: **routes** in `app/`, **UI** in `components/`, **logic/data**
+in `lib/`. This map is the index: find a feature, get every file that touches it.
+
+Convention: routes/actions in `app/`, components in `components/<area>/`, non-UI
+in `lib/<domain>/`. Server actions are colocated with their route as `actions.ts`.
+
+---
 
 ## Home / marketing
-- **Routes:** `app/(site)/page.tsx`, `app/(site)/layout.tsx`
-- **UI:** `components/home/*`, `components/three/*` (3D room + scroll tour),
-  `components/site/*` (header, footer, mobile menu, floating CTA)
-- **Logic:** `lib/home/data.ts`, `lib/three/*`, `hooks/use-scene-mode.ts`
-- **Notes:** long editorial homepage; 3D is perf-gated with a static fallback.
+- **Routes:** `app/(site)/page.tsx`, `app/(site)/layout.tsx`, `app/globals.css`
+- **UI:** `components/home/*` — `hero.tsx` (editorial split), `hero-carousel.tsx`
+  (photo slideshow), `hero-room-canvas.tsx` (3D room panel), `static-hero.tsx`
+  + `woven-canvas.tsx` (legacy, unused), and sections: `trust-strip`,
+  `how-it-works`, `services-grid`, `before-after`, `recent-jobs`, `testimonials`,
+  `faq`, `cta-finale`, plus motion helpers `reveal`, `stagger-title`, `section-header`
+- **3D:** `components/three/*` — `room.tsx` (public API), `room-parts.tsx`
+  (geometry), `room-tour*.tsx` (scroll tour), `decor`, `hotspot`, `hero-scene` (legacy)
+- **Logic:** `lib/home/data.ts`, `lib/three/{textures,tour}.ts`, `hooks/use-scene-mode.ts`
+
+## Hero slideshow (admin-managed)
+- **Public:** `components/home/hero-carousel.tsx`, fed by `lib/home/data.ts` (`heroSlides`)
+- **Admin:** `app/(admin)/admin/(dashboard)/hero/{page,actions}.tsx`,
+  `components/admin/hero-slides-manager.tsx`, `lib/admin/hero-data.ts`
+- **DB:** `hero_slides` table (images in the `gallery` bucket under `hero/`)
 
 ## Services
 - **Routes:** `app/(site)/services/page.tsx`, `app/(site)/services/[slug]/page.tsx`
-- **UI:** `components/services/estimate-preview.tsx`, `components/ar/*`
-- **Logic:** `lib/services/data.ts`, `lib/quote/estimate.ts`
-- **Notes:** each service can carry an AR model (glb/usdz) shown via `model-viewer`.
+- **UI:** `components/services/estimate-preview.tsx`, `components/ar/ar-viewer.tsx`
+- **Logic:** `lib/services/{data,content}.ts`, `lib/quote/estimate.ts`
+- **Admin:** `app/(admin)/.../services/{page,actions}.ts`, `components/admin/service-editor.tsx`
 
-## Quote & book (core flow)
-- **Routes:** `app/(site)/quote/page.tsx` (+ `actions.ts`)
-- **UI:** `components/quote/wizard.tsx`, `components/quote/step-*.tsx`
+## Quote wizard
+- **Routes:** `app/(site)/quote/{page,actions}.ts`
+- **UI:** `components/quote/*` — `wizard.tsx`, `step-{service,questions,photos,contact,slot,review}.tsx`, `photo-store.ts`
 - **Logic:** `lib/quote/{types,wizard-state,answers,estimate,image,demo-data}.ts`,
-  `lib/slots.ts`
-- **Flow:** pick service → answer questions → photos → contact/OTP → choose a
-  Melbourne-timezone 2-hour slot → review. RHF+zod, persisted to `sessionStorage`. The slot
-  engine excludes busy bookings (read via the service-role client) and blocked dates.
+  `lib/slots.ts` (availability engine)
 
-## Portal (customer)
-- **Routes:** `app/(site)/portal/page.tsx`, `app/(site)/portal/[id]/page.tsx`, `/bookings`
-- **Logic:** reads quotes/bookings via the cookie server client (RLS scopes to the user);
-  formats money with `lib/quote/estimate.ts` (`formatAud`) and times with `date-fns-tz`.
-- **Notes:** `noindex`. Requires sign-in (redirects to `/login?next=/portal`).
+## Bookings lifecycle (the big cross-cutting one)
+Enquiry → quote → accept → deposit → job → invoice → receipt.
+- **Customer routes:** `app/(site)/portal/{page,[id]/page,[id]/actions,[id]/receipt/route}.ts`
+- **Customer UI:** `components/portal/{quote-response,payment-panel,reschedule-request}.tsx`
+- **Admin routes:** `app/(admin)/.../bookings/{page,actions}.ts`,
+  `app/(admin)/.../quotes/{page,[id]/page,actions}.ts`, `.../invoices/{page,actions}.ts`
+- **Admin UI:** `components/admin/{bookings-view,booking-drawer,quotes-table,quote-actions,quote-photos,invoice-editor}.tsx`
+- **Logic:** `lib/bookings/status.ts` (state machine), `lib/invoice/{calc,create,receipt-pdf}.tsx`,
+  `lib/email/{notify,send}.ts`, `lib/admin/{bookings-data,quotes-data,invoices-data}.ts`
+- **DB:** `bookings`, `quote_requests`, `invoices` (+ slot exclusion constraint, status-sync trigger)
+
+## Calendar / availability
+- **Routes:** `app/(admin)/.../calendar/{page,actions}.ts`
+- **UI:** `components/admin/{calendar-week,availability-manager}.tsx`
+- **Logic:** `lib/admin/calendar-data.ts`, `lib/slots.ts`
 
 ## Gallery
-- **Routes:** `app/(site)/gallery/page.tsx`
-- **UI:** `components/gallery/*` (filterable grid + draggable before/after slider)
-- **Logic:** `lib/gallery/data.ts`
+- **Public:** `app/(site)/gallery/page.tsx`, `components/gallery/{gallery-grid,before-after-slider}.tsx`, `lib/gallery/data.ts`
+- **Admin:** `app/(admin)/.../gallery/{page,actions}.ts`, `components/admin/gallery-manager.tsx`
 
 ## Auth
-- **Routes:** `app/(site)/login`, `app/(admin)/admin/login`, `app/auth/confirm`, `app/auth/error`
-- **UI:** `components/auth/*` (auth-card, otp-input, resend-timer, google-button),
-  `components/site/user-menu.tsx`
-- **Logic:** `lib/auth/roles.ts` (`isAdmin`), `lib/auth/redirect.ts` (`safeNext`),
-  `lib/supabase/{server,client,middleware}.ts`
-- **Notes:** passwordless 6-digit email OTP; Google OAuth planned; admin MFA planned.
+- **Routes:** `app/(site)/login/page.tsx`, `app/(admin)/admin/login/page.tsx`,
+  `app/(admin)/admin/reset/page.tsx`, `app/auth/{confirm/route,error/page}.ts`
+- **UI:** `components/auth/{auth-card,otp-input,resend-timer,google-button}.tsx`,
+  `components/site/user-menu.tsx`, `components/admin/mfa-setup.tsx`
+- **Logic:** `lib/auth/{roles,redirect}.ts`, `lib/supabase/{server,client,middleware}.ts`,
+  `lib/admin/guard.ts` (`assertAdmin` — role + aal2)
 
-## Admin dashboard
-- **Routes:** `app/(admin)/admin/(dashboard)/*` — dashboard, bookings, quotes(+`[id]`),
-  calendar, services, gallery, invoices, customers, settings (+ per-view `actions.ts`)
-- **UI:** `components/admin/*` (views, editors, quote actions, availability manager,
-  gallery/bookings managers)
-- **Logic:** `lib/admin/*-data.ts` (loaders), `lib/admin/guard.ts` (route auth),
-  `lib/bookings/status.ts`, `lib/invoice/calc.ts`, `lib/admin/demo.ts`
-- **Notes:** `noindex`; Realtime updates; drag-drop booking pipeline; service-role writes.
+## Account settings (customer)
+- `app/(site)/portal/settings/{page,actions}.ts`, `components/portal/settings-form.tsx`
 
-## Cross-cutting
-- **Supabase clients** — `lib/supabase/*` (see CLAUDE.md for which to use).
-- **Email** — `lib/email/send.ts` (stub; deferred).
-- **Types** — `lib/database.types.ts` (generated), `types/model-viewer.d.ts`.
-- **SEO** — `app/robots.ts`, `app/sitemap.ts` (includes service slugs), `app/icon.tsx`,
-  `app/opengraph-image.tsx`, per-page metadata, `not-found.tsx`.
+## Admin dashboard shell
+- **Layout/nav:** `app/(admin)/admin/(dashboard)/layout.tsx`
+- **Home:** `app/(admin)/admin/(dashboard)/page.tsx`, `lib/admin/dashboard-data.ts`,
+  `components/admin/new-requests-watcher.tsx`
+- **Customers:** `.../customers/page.tsx`, `components/admin/customers-list.tsx`, `lib/admin/customers-data.ts`
+- **Settings:** `.../settings/page.tsx` (hosts MFA)
+
+## Cross-cutting / shared
+- **UI primitives:** `components/ui/*` (shadcn + `status-badge`)
+- **Site chrome:** `components/site/{site-header,mobile-menu,user-menu,floating-cta}.tsx`
+- **Supabase clients:** `lib/supabase/{client,server,admin,middleware}.ts` (see CLAUDE.md)
+- **SEO:** `components/seo/json-ld.tsx`, `lib/seo/json-ld.ts`, `app/{robots,sitemap,icon,opengraph-image}.ts(x)`
+- **Email:** `lib/email/{send,notify}.ts` (send is real once RESEND_API_KEY is set)
+- **Types:** `lib/database.types.ts` (generated), `types/model-viewer.d.ts`
+- **Utils:** `lib/utils.ts` (`cn`)
