@@ -4,13 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { AdminAuthShell, AuthError } from "@/components/admin/admin-auth-shell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { OtpInput } from "@/components/auth/otp-input";
@@ -46,7 +40,6 @@ export default function AdminLoginPage() {
         if (mfa) setStep("mfa");
       })
       .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once
   }, []);
 
   async function handlePassword(event: React.FormEvent<HTMLFormElement>) {
@@ -98,73 +91,87 @@ export default function AdminLoginPage() {
     }
   }
 
+  if (step === "mfa") {
+    return (
+      <AdminAuthShell
+        eyebrow="Two-factor"
+        title="Enter your code"
+        description="Open your authenticator app and enter the current 6-digit code."
+        footer={
+          <button
+            type="button"
+            onClick={() => {
+              setStep("password");
+              setError(null);
+              setCode("");
+            }}
+            className="underline underline-offset-4 hover:text-foreground"
+          >
+            Use a different account
+          </button>
+        }
+      >
+        <div className="space-y-5">
+          <div className="flex justify-center">
+            <OtpInput
+              value={code}
+              onChange={setCode}
+              onComplete={(v) => verifyMfa(v)}
+              disabled={loading}
+              invalid={!!error}
+            />
+          </div>
+          {error && <AuthError>{error}</AuthError>}
+          <Button
+            onClick={() => verifyMfa()}
+            className="w-full"
+            disabled={loading || code.length < 6}
+          >
+            {loading ? "Verifying…" : "Verify"}
+          </Button>
+        </div>
+      </AdminAuthShell>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>{step === "mfa" ? "Two-factor code" : "Admin login"}</CardTitle>
-          <CardDescription>
-            {step === "mfa"
-              ? "Enter the 6-digit code from your authenticator app."
-              : "Sign in to manage ModernHome."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {step === "mfa" ? (
-            <div className="space-y-4">
-              <OtpInput
-                value={code}
-                onChange={setCode}
-                onComplete={(v) => verifyMfa(v)}
-                disabled={loading}
-                invalid={!!error}
-              />
-              {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button
-                onClick={() => verifyMfa()}
-                className="w-full"
-                disabled={loading || code.length < 6}
-              >
-                {loading ? "Verifying…" : "Verify"}
-              </Button>
-            </div>
-          ) : (
-            <form onSubmit={handlePassword} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Signing in…" : "Sign in"}
-              </Button>
-              <p className="text-center text-sm">
-                <Link href="/admin/reset" className="text-muted-foreground underline">
-                  Forgot your password?
-                </Link>
-              </p>
-            </form>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+    <AdminAuthShell
+      title="Admin sign-in"
+      description="Manage quotes, bookings and the calendar."
+      footer={
+        <Link href="/admin/reset" className="underline underline-offset-4 hover:text-foreground">
+          Forgot your password?
+        </Link>
+      }
+    >
+      <form onSubmit={handlePassword} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+        {error && <AuthError>{error}</AuthError>}
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading ? "Signing in…" : "Sign in"}
+        </Button>
+      </form>
+    </AdminAuthShell>
   );
 }

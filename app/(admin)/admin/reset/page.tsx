@@ -1,15 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { AdminAuthShell, AuthError } from "@/components/admin/admin-auth-shell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { navigateAfterAuth } from "@/lib/auth/navigate";
@@ -69,60 +64,65 @@ export default function AdminResetPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>
-            {mode === "update" ? "Set a new password" : "Reset password"}
-          </CardTitle>
-          <CardDescription>
-            {mode === "update"
-              ? "Choose a new password for your admin account."
-              : "We'll email you a link to reset your password."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {mode === "update" ? (
-            <form onSubmit={updatePassword} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="new-password">New password</Label>
-                <Input
-                  id="new-password"
-                  type="password"
-                  autoComplete="new-password"
-                  minLength={8}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button type="submit" className="w-full" disabled={busy}>
-                {busy ? "Saving…" : "Save password"}
-              </Button>
-            </form>
-          ) : (
-            <form onSubmit={sendReset} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              {error && <p className="text-sm text-destructive">{error}</p>}
-              {message && <p className="text-sm text-green-700">{message}</p>}
-              <Button type="submit" className="w-full" disabled={busy}>
-                {busy ? "Sending…" : "Send reset link"}
-              </Button>
-            </form>
+    <AdminAuthShell
+      eyebrow={mode === "update" ? "New password" : "Account recovery"}
+      title={mode === "update" ? "Set a new password" : "Reset password"}
+      description={
+        mode === "update"
+          ? "Choose a new password for your admin account."
+          : "We'll email you a link to reset your password."
+      }
+      footer={
+        mode === "update" ? undefined : (
+          <Link href="/admin/login" className="underline underline-offset-4 hover:text-foreground">
+            Back to sign in
+          </Link>
+        )
+      }
+    >
+      {mode === "update" ? (
+        <form onSubmit={updatePassword} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="new-password">New password</Label>
+            <Input
+              id="new-password"
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+          {error && <AuthError>{error}</AuthError>}
+          <Button type="submit" className="w-full" disabled={busy}>
+            {busy ? "Saving…" : "Save password"}
+          </Button>
+        </form>
+      ) : (
+        <form onSubmit={sendReset} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          {error && <AuthError>{error}</AuthError>}
+          {message && (
+            <p className="rounded-lg border border-green-600/25 bg-green-600/10 px-3 py-2 text-sm text-green-800">
+              {message}
+            </p>
           )}
-        </CardContent>
-      </Card>
-    </div>
+          <Button type="submit" className="w-full" disabled={busy}>
+            {busy ? "Sending…" : "Send reset link"}
+          </Button>
+        </form>
+      )}
+    </AdminAuthShell>
   );
 }
