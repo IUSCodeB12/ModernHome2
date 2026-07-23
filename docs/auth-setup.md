@@ -16,7 +16,6 @@ Supabase → **Authentication → URL Configuration**
   - `https://modern-home2.vercel.app/**`
   - `https://modern-home2.vercel.app/auth/confirm`
   - `https://modern-home2.vercel.app/auth/callback`   ← Google OAuth (see §3)
-  - `https://modern-home2.vercel.app/admin/reset`      ← admin password recovery (Auth 4)
   - `http://localhost:3000/**` (local dev)
 
 ## 2. Email / OTP (Resend SMTP)  — mostly already done

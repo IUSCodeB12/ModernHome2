@@ -60,10 +60,10 @@ Enquiry → quote → accept → deposit → job → invoice → receipt.
 
 ## Auth
 - **Routes:** `app/(site)/login/page.tsx`, `app/(admin)/admin/login/page.tsx`,
-  `app/(admin)/admin/reset/page.tsx`, `app/auth/{confirm/route,error/page}.ts`
+  `app/auth/{confirm/route,error/page}.ts`
 - **UI:** `components/auth/{auth-card,otp-input,resend-timer,google-button}.tsx`,
-  `components/site/user-menu.tsx`, `components/admin/mfa-setup.tsx`
-- **Logic:** `lib/auth/{roles,redirect}.ts`, `lib/supabase/{server,client,middleware}.ts`,
+  `components/site/user-menu.tsx`, `components/admin/{mfa-setup,admin-auth-shell}.tsx`
+- **Logic:** `lib/auth/{roles,redirect,navigate}.ts`, `lib/supabase/{server,client,middleware}.ts`,
   `lib/admin/guard.ts` (`assertAdmin` — role + aal2)
 
 ## Account settings (customer)

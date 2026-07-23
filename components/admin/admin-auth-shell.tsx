@@ -2,10 +2,10 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 /**
- * Framed shell for the staff-facing auth screens (/admin/login, /admin/reset).
+ * Framed shell for the staff-facing auth screen (/admin/login).
  *
- * These routes sit outside the dashboard layout, so without this they render as
- * a bare card on an empty page with no way back to the site. Echoes the public
+ * It sits outside the dashboard layout, so without this it renders as a bare
+ * card on an empty page with no way back to the site. Echoes the public
  * header's editorial language — brand lockup, hairline rails, amber corner plus
  * marks — while the form controls stay sans, per the admin/site split.
  */

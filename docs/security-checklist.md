@@ -53,7 +53,8 @@ Customer:
 Admin:
 - [ ] `/admin/*` blocked when signed out and for non-admin accounts.
 - [ ] Enrol TOTP in `/admin/settings`; sign out; re-login now demands a code.
-- [ ] `/admin/reset`: request link → set new password.
+- [ ] `/admin/login` with a non-admin account: rejected after the emailed code.
+- [ ] `/admin/login` with an unknown email: no account is created.
 - [ ] Move a job `invoiced` → invoice auto-created; add extra work; `paid` → receipt.
 
 Redirects:

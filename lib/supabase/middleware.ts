@@ -5,7 +5,7 @@ import type { Database } from "@/lib/database.types";
 
 const LOGIN_PATH = "/admin/login";
 /** Admin routes reachable while signed out (auth screens). */
-const ADMIN_PUBLIC_PATHS = new Set([LOGIN_PATH, "/admin/reset"]);
+const ADMIN_PUBLIC_PATHS = new Set([LOGIN_PATH]);
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
