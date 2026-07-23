@@ -5,6 +5,35 @@ import { calcInvoiceTotals, type LineItem } from "@/lib/invoice/calc";
 type Admin = SupabaseClient<Database>;
 
 /**
+ * Decide what to bill for a job. Prefers the itemised breakdown the admin sent
+ * with the adjusted quote; falls back to a single line at the final quoted
+ * price. Returns [] when there's nothing to bill (no breakdown, no price).
+ *
+ * Pure and separated from the DB read so the billing decision — the part that
+ * decides what a customer is charged — is unit-testable.
+ */
+export function buildInvoiceItems(
+  storedLineItems: LineItem[] | null | undefined,
+  finalQuoteCents: number | null | undefined,
+  serviceName: string
+): LineItem[] {
+  const stored = storedLineItems ?? [];
+  if (stored.length) return stored;
+
+  const final = finalQuoteCents ?? 0;
+  if (final <= 0) return [];
+
+  return [
+    {
+      description: `${serviceName} — installation`,
+      quantity: 1,
+      unit_price_cents: final,
+      total_cents: final,
+    },
+  ];
+}
+
+/**
  * Ensure an invoice exists for a booking. Built from the accepted
  * `quote_line_items` (adjusted quote); falls back to a single line for the
  * final quote total. Idempotent — a booking never gets two invoices.
@@ -32,22 +61,11 @@ export async function ensureInvoiceForBooking(
   const quote = booking?.quote_requests;
   if (!quote) return null;
 
-  const stored = (quote.quote_line_items ?? []) as LineItem[];
-  const serviceName = quote.services?.name ?? "Installation";
-  const final = quote.final_quote_cents ?? 0;
-
-  const items: LineItem[] = stored.length
-    ? stored
-    : final > 0
-      ? [
-          {
-            description: `${serviceName} — installation`,
-            quantity: 1,
-            unit_price_cents: final,
-            total_cents: final,
-          },
-        ]
-      : [];
+  const items = buildInvoiceItems(
+    quote.quote_line_items as LineItem[] | null,
+    quote.final_quote_cents,
+    quote.services?.name ?? "Installation"
+  );
   if (!items.length) return null;
 
   const totals = calcInvoiceTotals(items);
