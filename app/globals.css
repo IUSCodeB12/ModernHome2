@@ -236,6 +236,28 @@
   }
 }
 
+/* Hero slideshow: timer bar that refills on each slide. */
+@keyframes hero-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Hero slideshow: caption rises as its slide settles. */
+@keyframes hero-caption-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.6rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .animate-marquee {
   animation: marquee 32s linear infinite;
 }
