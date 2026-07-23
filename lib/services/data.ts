@@ -40,3 +40,27 @@ export async function getServiceBySlug(
     ),
   };
 }
+
+/**
+ * Showcase photo per service, keyed by service id. Reuses the homepage
+ * showcase panels so the tradie curates job photography in one place
+ * (/admin/showcase) and it appears on the services index too. Services
+ * without a panel — or with a panel that has no photo yet — are simply absent.
+ */
+export async function getServicePhotos(): Promise<Record<string, string>> {
+  if (!isSupabaseConfigured()) return {};
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("service_showcase")
+    .select("service_id, image_url")
+    .eq("active", true)
+    .order("sort_order");
+
+  const map: Record<string, string> = {};
+  for (const row of data ?? []) {
+    if (row.service_id && row.image_url && !map[row.service_id]) {
+      map[row.service_id] = row.image_url;
+    }
+  }
+  return map;
+}
