@@ -1,7 +1,7 @@
 import { Hero } from "@/components/home/hero";
 import { TrustStrip } from "@/components/home/trust-strip";
 import { HowItWorks } from "@/components/home/how-it-works";
-import { RoomTour } from "@/components/three/room-tour";
+import { ServiceShowcase } from "@/components/home/service-showcase";
 import { ServicesGrid } from "@/components/home/services-grid";
 import { BeforeAfter } from "@/components/home/before-after";
 import { Testimonials } from "@/components/home/testimonials";
@@ -15,7 +15,7 @@ import { localBusinessLd } from "@/lib/seo/json-ld";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const { services, featured, recent, heroSlides } = await getHomeData();
+  const { services, featured, recent, heroSlides, showcase } = await getHomeData();
 
   return (
     <>
@@ -23,7 +23,7 @@ export default async function HomePage() {
       <Hero slides={heroSlides} />
       <TrustStrip />
       <HowItWorks />
-      <RoomTour />
+      <ServiceShowcase panels={showcase} />
       <ServicesGrid services={services} />
       <BeforeAfter items={featured} />
       <Testimonials />

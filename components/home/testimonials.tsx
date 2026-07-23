@@ -29,7 +29,7 @@ const TESTIMONIALS = [
 export function Testimonials() {
   return (
     <section className="mx-auto max-w-6xl px-4 py-20">
-      <SectionHeader number="04" eyebrow="Word of mouth" title="Neighbours talk" />
+      <SectionHeader number="05" eyebrow="Word of mouth" title="Neighbours talk" />
 
       <div className="mt-10 grid gap-4 md:grid-cols-3">
         {TESTIMONIALS.map((t, i) => (

@@ -32,7 +32,7 @@ export function BeforeAfter({ items }: { items: FeaturedItem[] }) {
   return (
     <section className="mx-auto max-w-6xl px-4 py-20">
       <SectionHeader
-        number="03"
+        number="04"
         eyebrow="Recent work"
         title="Before & after"
         action={

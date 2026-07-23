@@ -1,21 +1,11 @@
-"use client";
-
-import { Suspense, useEffect, useState } from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowRight, ShieldCheck, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeroCarousel } from "@/components/home/hero-carousel";
 import type { HeroSlide } from "@/lib/home/data";
 
-// Lazy-load the 3D room canvas — never server-rendered, never in the main bundle.
-const HeroRoomCanvas = dynamic(() => import("@/components/home/hero-room-canvas"), {
-  ssr: false,
-  loading: () => <RoomPoster />,
-});
-
-/** Warm dark placeholder the room canvas fades into (LCP-friendly, no image). */
-function RoomPoster() {
+/** Warm gradient shown until slides are curated (LCP-friendly, no image). */
+function HeroPoster() {
   return (
     <div className="absolute inset-0 bg-[#1a1714]">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_60%_35%,rgba(255,177,99,0.18),transparent_60%)]" />
@@ -24,55 +14,12 @@ function RoomPoster() {
   );
 }
 
-/** Low-end / reduced-motion → static poster, no 3D. */
-function useHeroMode(): "static" | "3d" | "pending" {
-  const [mode, setMode] = useState<"static" | "3d" | "pending">("pending");
-  useEffect(() => {
-    const lowEnd =
-      (navigator.hardwareConcurrency ?? 8) < 4 ||
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    setMode(lowEnd ? "static" : "3d");
-  }, []);
-  return mode;
-}
-
-/** Mount the heavy 3D bundle only on first intent / after idle — keeps three.js out of load. */
-function useDeferredMount(enabled: boolean): boolean {
-  const [mount, setMount] = useState(false);
-  useEffect(() => {
-    if (!enabled || mount) return;
-    let done = false;
-    const events: (keyof WindowEventMap)[] = [
-      "pointermove",
-      "pointerdown",
-      "touchstart",
-      "scroll",
-      "keydown",
-    ];
-    const start = () => {
-      if (done) return;
-      done = true;
-      cleanup();
-      setMount(true);
-    };
-    const timer = window.setTimeout(start, 6000);
-    const cleanup = () => {
-      events.forEach((e) => window.removeEventListener(e, start));
-      window.clearTimeout(timer);
-    };
-    events.forEach((e) =>
-      window.addEventListener(e, start, { once: true, passive: true })
-    );
-    return cleanup;
-  }, [enabled, mount]);
-  return mount;
-}
-
+/**
+ * Editorial split hero: headline and CTAs on cream, curated photography in a
+ * framed panel. Server-rendered — only the carousel itself is a client island,
+ * so nothing blocks the LCP text.
+ */
 export function Hero({ slides = [] }: { slides?: HeroSlide[] }) {
-  const hasSlides = slides.length > 0;
-  const mode = useHeroMode();
-  const sceneReady = useDeferredMount(mode === "3d" && !hasSlides);
-
   return (
     <section className="relative w-full overflow-hidden">
       <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-4 py-16 sm:py-20 md:grid-cols-2 md:gap-8 lg:py-24">
@@ -111,20 +58,10 @@ export function Hero({ slides = [] }: { slides?: HeroSlide[] }) {
           </div>
         </div>
 
-        {/* Room panel */}
+        {/* Photo panel */}
         <div className="order-1 md:order-2">
           <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border bg-[#1a1714] shadow-elev-3 md:aspect-[5/6] lg:aspect-[4/3]">
-            {hasSlides ? (
-              <HeroCarousel slides={slides} />
-            ) : mode === "3d" && sceneReady ? (
-              <Suspense fallback={<RoomPoster />}>
-                <div className="absolute inset-0">
-                  <HeroRoomCanvas />
-                </div>
-              </Suspense>
-            ) : (
-              <RoomPoster />
-            )}
+            {slides.length > 0 ? <HeroCarousel slides={slides} /> : <HeroPoster />}
             {/* Brass hairline accent */}
             <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-[#c9a24b]/20" />
           </div>

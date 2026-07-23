@@ -28,7 +28,7 @@ const FAQS = [
 export function Faq() {
   return (
     <section className="mx-auto max-w-3xl px-4 py-20">
-      <SectionHeader number="05" eyebrow="Good to know" title="Questions, answered" align="center" />
+      <SectionHeader number="06" eyebrow="Good to know" title="Questions, answered" align="center" />
 
       <Reveal className="mt-10 space-y-2">
         {FAQS.map((item) => (

@@ -425,6 +425,56 @@ export type Database = {
         };
         Relationships: [];
       };
+      service_showcase: {
+        Row: {
+          id: string;
+          service_id: string | null;
+          image_url: string | null;
+          eyebrow: string | null;
+          title: string;
+          body: string | null;
+          price_hint: string | null;
+          sort_order: number;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          service_id?: string | null;
+          image_url?: string | null;
+          eyebrow?: string | null;
+          title: string;
+          body?: string | null;
+          price_hint?: string | null;
+          sort_order?: number;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          service_id?: string | null;
+          image_url?: string | null;
+          eyebrow?: string | null;
+          title?: string;
+          body?: string | null;
+          price_hint?: string | null;
+          sort_order?: number;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "service_showcase_service_id_fkey";
+            columns: ["service_id"];
+            isOneToOne: false;
+            referencedRelation: "services";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       gallery_items: {
         Row: {
           id: string;

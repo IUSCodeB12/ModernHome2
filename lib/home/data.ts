@@ -18,6 +18,42 @@ export type RecentJob = {
 
 export type HeroSlide = Pick<Tables<"hero_slides">, "id" | "image_url" | "headline">;
 
+export type ShowcasePanel = Pick<
+  Tables<"service_showcase">,
+  "id" | "image_url" | "eyebrow" | "title" | "body" | "price_hint"
+> & { slug: string | null };
+
+/** Copy-only fallback so the section still sells when Supabase is unconfigured. */
+const DEMO_SHOWCASE: ShowcasePanel[] = [
+  {
+    id: "s1",
+    image_url: null,
+    eyebrow: "TV Wall Mounting",
+    title: "Any TV, any wall",
+    body: "Plasterboard, brick or concrete — mounted level, cables concealed, power sorted.",
+    price_hint: "from $149",
+    slug: "tv-wall-mounting",
+  },
+  {
+    id: "s2",
+    image_url: null,
+    eyebrow: "Floating Cabinet",
+    title: "Floating cabinets with LED glow",
+    body: "Made to measure, wall-mounted with a seamless look and warm underglow lighting.",
+    price_hint: "from $450 / m",
+    slug: "tv-floating-cabinet",
+  },
+  {
+    id: "s3",
+    image_url: null,
+    eyebrow: "LED Strip Lighting",
+    title: "Light that sets the mood",
+    body: "Kickboards, ceiling coves, cabinets — supplied, installed and dimmable.",
+    price_hint: "from $85 / m",
+    slug: "led-strip-lighting",
+  },
+];
+
 const DEMO_FEATURED: FeaturedItem[] = [
   { id: "d1", title: "65\" TV + floating cabinet", before_image_url: "", after_image_url: "" },
   { id: "d2", title: "Kitchen kickboard LED", before_image_url: "", after_image_url: "" },
@@ -37,17 +73,24 @@ export type HomeData = {
   featured: FeaturedItem[];
   recent: RecentJob[];
   heroSlides: HeroSlide[];
+  showcase: ShowcasePanel[];
 };
 
 export async function getHomeData(): Promise<HomeData> {
   const services = await getActiveServices();
 
   if (!isSupabaseConfigured()) {
-    return { services, featured: DEMO_FEATURED, recent: DEMO_RECENT, heroSlides: [] };
+    return {
+      services,
+      featured: DEMO_FEATURED,
+      recent: DEMO_RECENT,
+      heroSlides: [],
+      showcase: DEMO_SHOWCASE,
+    };
   }
 
   const supabase = await createClient();
-  const [galleryRes, jobsRes, heroRes] = await Promise.all([
+  const [galleryRes, jobsRes, heroRes, showcaseRes] = await Promise.all([
     supabase
       .from("gallery_items")
       .select("id, title, before_image_url, after_image_url")
@@ -65,6 +108,11 @@ export async function getHomeData(): Promise<HomeData> {
       .select("id, image_url, headline")
       .eq("active", true)
       .order("sort_order"),
+    supabase
+      .from("service_showcase")
+      .select("id, image_url, eyebrow, title, body, price_hint, services(slug)")
+      .eq("active", true)
+      .order("sort_order"),
   ]);
 
   const featured = galleryRes.data?.length ? galleryRes.data : DEMO_FEATURED;
@@ -77,10 +125,22 @@ export async function getHomeData(): Promise<HomeData> {
       when: "recently",
     })) ?? [];
 
+  const showcase: ShowcasePanel[] =
+    showcaseRes.data?.map((p) => ({
+      id: p.id,
+      image_url: p.image_url,
+      eyebrow: p.eyebrow,
+      title: p.title,
+      body: p.body,
+      price_hint: p.price_hint,
+      slug: p.services?.slug ?? null,
+    })) ?? [];
+
   return {
     services,
     featured,
     recent: recent.length ? recent : DEMO_RECENT,
     heroSlides: heroRes.data ?? [],
+    showcase,
   };
 }

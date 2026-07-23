@@ -15,7 +15,7 @@ export function ServicesGrid({ services }: { services: ServiceWithQuestions[] })
   return (
     <section className="mx-auto max-w-6xl px-4 py-20">
       <SectionHeader
-        number="02"
+        number="03"
         eyebrow="What we do"
         title="Fixed prices, no surprises"
         action={
