@@ -16,6 +16,8 @@ export type RecentJob = {
   when: string;
 };
 
+export type HeroSlide = Pick<Tables<"hero_slides">, "id" | "image_url" | "headline">;
+
 const DEMO_FEATURED: FeaturedItem[] = [
   { id: "d1", title: "65\" TV + floating cabinet", before_image_url: "", after_image_url: "" },
   { id: "d2", title: "Kitchen kickboard LED", before_image_url: "", after_image_url: "" },
@@ -34,17 +36,18 @@ export type HomeData = {
   services: ServiceWithQuestions[];
   featured: FeaturedItem[];
   recent: RecentJob[];
+  heroSlides: HeroSlide[];
 };
 
 export async function getHomeData(): Promise<HomeData> {
   const services = await getActiveServices();
 
   if (!isSupabaseConfigured()) {
-    return { services, featured: DEMO_FEATURED, recent: DEMO_RECENT };
+    return { services, featured: DEMO_FEATURED, recent: DEMO_RECENT, heroSlides: [] };
   }
 
   const supabase = await createClient();
-  const [galleryRes, jobsRes] = await Promise.all([
+  const [galleryRes, jobsRes, heroRes] = await Promise.all([
     supabase
       .from("gallery_items")
       .select("id, title, before_image_url, after_image_url")
@@ -57,6 +60,11 @@ export async function getHomeData(): Promise<HomeData> {
       .in("status", ["completed", "invoiced", "paid"])
       .order("updated_at", { ascending: false })
       .limit(6),
+    supabase
+      .from("hero_slides")
+      .select("id, image_url, headline")
+      .eq("active", true)
+      .order("sort_order"),
   ]);
 
   const featured = galleryRes.data?.length ? galleryRes.data : DEMO_FEATURED;
@@ -73,5 +81,6 @@ export async function getHomeData(): Promise<HomeData> {
     services,
     featured,
     recent: recent.length ? recent : DEMO_RECENT,
+    heroSlides: heroRes.data ?? [],
   };
 }

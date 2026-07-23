@@ -5,6 +5,8 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowRight, ShieldCheck, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { HeroCarousel } from "@/components/home/hero-carousel";
+import type { HeroSlide } from "@/lib/home/data";
 
 // Lazy-load the 3D room canvas — never server-rendered, never in the main bundle.
 const HeroRoomCanvas = dynamic(() => import("@/components/home/hero-room-canvas"), {
@@ -66,9 +68,10 @@ function useDeferredMount(enabled: boolean): boolean {
   return mount;
 }
 
-export function Hero() {
+export function Hero({ slides = [] }: { slides?: HeroSlide[] }) {
+  const hasSlides = slides.length > 0;
   const mode = useHeroMode();
-  const sceneReady = useDeferredMount(mode === "3d");
+  const sceneReady = useDeferredMount(mode === "3d" && !hasSlides);
 
   return (
     <section className="relative w-full overflow-hidden">
@@ -111,7 +114,9 @@ export function Hero() {
         {/* Room panel */}
         <div className="order-1 md:order-2">
           <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border bg-[#1a1714] shadow-elev-3 md:aspect-[5/6] lg:aspect-[4/3]">
-            {mode === "3d" && sceneReady ? (
+            {hasSlides ? (
+              <HeroCarousel slides={slides} />
+            ) : mode === "3d" && sceneReady ? (
               <Suspense fallback={<RoomPoster />}>
                 <div className="absolute inset-0">
                   <HeroRoomCanvas />

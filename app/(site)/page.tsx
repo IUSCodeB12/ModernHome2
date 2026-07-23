@@ -15,12 +15,12 @@ import { localBusinessLd } from "@/lib/seo/json-ld";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const { services, featured, recent } = await getHomeData();
+  const { services, featured, recent, heroSlides } = await getHomeData();
 
   return (
     <>
       <JsonLd data={localBusinessLd()} />
-      <Hero />
+      <Hero slides={heroSlides} />
       <TrustStrip />
       <HowItWorks />
       <RoomTour />
