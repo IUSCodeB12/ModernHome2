@@ -10,6 +10,8 @@ export type QuoteWizardData = {
   rules: AvailabilityRule[];
   blockedDates: BlockedDate[];
   busy: BusyInterval[];
+  /** Showcase photo per service id (curated in /admin/showcase). */
+  photos: Record<string, string>;
   /** false when Supabase env vars are missing → wizard runs in demo mode. */
   configured: boolean;
 };

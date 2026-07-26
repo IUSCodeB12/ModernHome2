@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import type { QuoteWizardData, ServiceWithQuestions } from "@/lib/quote/types";
@@ -21,7 +21,7 @@ import { StepPhotos } from "@/components/quote/step-photos";
 import { StepContact } from "@/components/quote/step-contact";
 import { StepSlot } from "@/components/quote/step-slot";
 import { StepReview } from "@/components/quote/step-review";
-import { cn } from "@/lib/utils";
+import { ProgressRail } from "@/components/quote/progress-rail";
 
 const STEP_LABELS = ["Service", "Details", "Photos", "About you", "Time", "Review"];
 
@@ -143,25 +143,43 @@ export function QuoteWizard({ data }: { data: QuoteWizardData }) {
 
   if (done) {
     return (
-      <div className="flex flex-col items-center gap-4 rounded-xl border p-8 text-center">
-        <CheckCircle2 className="size-12 text-green-600" />
-        <h2 className="text-xl font-semibold">You&apos;re booked in!</h2>
-        <p className="max-w-sm text-sm text-muted-foreground">
-          We&apos;ve received your quote request and held your time slot.
-          We&apos;ll review your details and confirm your final quote shortly.
-          {done.demo && (
-            <span className="mt-2 block text-xs">
-              (Demo mode — Supabase isn&apos;t configured, so nothing was saved.)
+      <div className="animate-enter-up overflow-hidden rounded-2xl border border-border bg-card shadow-elev-2">
+        {/* Warm confirmation banner echoing the CTA finale */}
+        <div className="relative overflow-hidden bg-[#171513] px-8 py-12 text-center">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(255,177,99,0.22),transparent_65%)]" />
+          <div className="relative">
+            <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-brand/15 ring-1 ring-brand/40">
+              <CheckCircle2 className="size-7 text-brand" />
             </span>
+            <p className="mt-5 text-[0.7rem] font-medium uppercase tracking-[0.16em] text-brand">
+              Spot held
+            </p>
+            <h2 className="mt-2 font-serif text-3xl tracking-tight text-white sm:text-4xl">
+              You&apos;re booked in.
+            </h2>
+            <p className="mx-auto mt-3 max-w-sm text-sm text-white/70">
+              We&apos;ve got your details and held your arrival window. We&apos;ll
+              review everything and confirm your final quote shortly.
+            </p>
+          </div>
+        </div>
+
+        <div className="p-6">
+          {done.demo && (
+            <p className="mb-4 rounded-lg border border-border bg-muted/40 px-3 py-2 text-center text-xs text-muted-foreground">
+              Demo mode — Supabase isn&apos;t configured, so nothing was saved.
+            </p>
           )}
-        </p>
-        <div className="flex gap-3">
-          <Button asChild variant="outline">
-            <Link href="/">Back home</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/portal">View my bookings</Link>
-          </Button>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button asChild variant="outline" className="flex-1">
+              <Link href="/">Back home</Link>
+            </Button>
+            <Button asChild className="flex-1">
+              <Link href="/portal">
+                View my bookings <ArrowRight />
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -169,35 +187,14 @@ export function QuoteWizard({ data }: { data: QuoteWizardData }) {
 
   return (
     <div>
-      {/* Progress */}
-      <ol className="mb-6 flex items-center gap-1">
-        {STEP_LABELS.map((label, i) => (
-          <li key={label} className="flex-1">
-            <div
-              className={cn(
-                "h-1.5 rounded-full",
-                i <= state.step ? "bg-primary" : "bg-muted"
-              )}
-            />
-            <span
-              className={cn(
-                "mt-1 hidden text-[10px] uppercase tracking-wide sm:block",
-                i === state.step
-                  ? "font-semibold text-foreground"
-                  : "text-muted-foreground"
-              )}
-            >
-              {label}
-            </span>
-          </li>
-        ))}
-      </ol>
+      <ProgressRail labels={STEP_LABELS} current={state.step} />
 
       {/* key on step → each step slides in fresh */}
       <div key={state.step} className="animate-enter-up">
       {state.step === 0 && (
         <StepService
           services={data.services}
+          photos={data.photos}
           selectedId={state.serviceId}
           onSelect={(s) => {
             // Changing service resets answers/photos for a clean slate.

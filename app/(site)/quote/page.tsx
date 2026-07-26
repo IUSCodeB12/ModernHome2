@@ -1,6 +1,7 @@
 import { addDays } from "date-fns";
 import { QuoteWizard } from "@/components/quote/wizard";
 import { getDemoWizardData } from "@/lib/quote/demo-data";
+import { getServicePhotos } from "@/lib/services/data";
 import type { QuoteWizardData } from "@/lib/quote/types";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, isSupabaseConfigured } from "@/lib/supabase/admin";
@@ -20,7 +21,7 @@ async function getWizardData(): Promise<QuoteWizardData> {
 
   const supabase = await createClient();
 
-  const [servicesRes, rulesRes, blockedRes] = await Promise.all([
+  const [servicesRes, rulesRes, blockedRes, photos] = await Promise.all([
     supabase
       .from("services")
       .select("*, service_questions(*)")
@@ -31,6 +32,7 @@ async function getWizardData(): Promise<QuoteWizardData> {
       .from("blocked_dates")
       .select("date")
       .gte("date", new Date().toISOString().slice(0, 10)),
+    getServicePhotos(),
   ]);
 
   // Busy intervals need the service role (customers can only read their own
@@ -59,6 +61,7 @@ async function getWizardData(): Promise<QuoteWizardData> {
     rules: rulesRes.data ?? [],
     blockedDates: blockedRes.data ?? [],
     busy,
+    photos,
     configured: true,
   };
 }
@@ -67,14 +70,18 @@ export default async function QuotePage() {
   const data = await getWizardData();
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:py-12">
-      <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-        Get an instant quote
-      </h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Answer a few questions and lock in a time — takes about 3 minutes.
+    <div className="mx-auto w-full max-w-2xl px-4 py-12 sm:py-16">
+      <p className="text-[0.7rem] font-medium uppercase tracking-[0.16em] text-brand">
+        Instant quote
       </p>
-      <div className="mt-6">
+      <h1 className="mt-3 font-serif text-4xl leading-[1.05] tracking-tight sm:text-5xl">
+        Let&apos;s price your job.
+      </h1>
+      <p className="mt-4 max-w-md text-base text-muted-foreground">
+        Answer a few questions and lock in a 2-hour arrival window — about three
+        minutes, no callout fee.
+      </p>
+      <div className="mt-10">
         <QuoteWizard data={data} />
       </div>
     </div>

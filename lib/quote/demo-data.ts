@@ -180,6 +180,7 @@ export function getDemoWizardData(): QuoteWizardData {
     })),
     blockedDates: [],
     busy: [],
+    photos: {},
     configured: false,
   };
 }
