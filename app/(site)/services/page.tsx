@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowUpRight, Boxes, Clock, ShieldCheck, Wallet } from "lucide-react";
 import { getActiveServices, getServicePhotos } from "@/lib/services/data";
+import { isCustomService } from "@/lib/services/custom";
 import { formatAud } from "@/lib/quote/estimate";
 import { Reveal } from "@/components/home/reveal";
 import { CtaFinale } from "@/components/home/cta-finale";
@@ -66,10 +67,13 @@ export default async function ServicesPage() {
         <div className="mt-14 border-t border-border/70">
           {services.map((service, i) => {
             const photo = photos[service.id];
+            // The custom entry has no price and no detail page worth showing —
+            // it goes straight into the wizard.
+            const custom = isCustomService(service);
             return (
               <Reveal key={service.id} delay={i * 70} as="div">
                 <Link
-                  href={`/services/${service.slug}`}
+                  href={custom ? "/quote" : `/services/${service.slug}`}
                   className="group relative block border-b border-border/70 transition-colors duration-300 hover:bg-brand/[0.035] focus-visible:bg-brand/[0.035] focus-visible:outline-none"
                 >
                   <span
@@ -114,28 +118,40 @@ export default async function ServicesPage() {
                         {service.description}
                       </p>
                       <p className="mt-3 sm:hidden">
-                        <span className="text-xs uppercase tracking-wider text-muted-foreground">
-                          from{" "}
-                        </span>
-                        <span className="font-serif text-xl">
-                          {formatAud(service.base_price_cents)}
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {unitSuffix(service.price_unit)}
-                        </span>
+                        {custom ? (
+                          <span className="font-serif text-xl">By quote</span>
+                        ) : (
+                          <>
+                            <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                              from{" "}
+                            </span>
+                            <span className="font-serif text-xl">
+                              {formatAud(service.base_price_cents)}
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                              {unitSuffix(service.price_unit)}
+                            </span>
+                          </>
+                        )}
                       </p>
                     </div>
 
                     <div className="flex shrink-0 items-baseline gap-5">
                       <div className="hidden text-right sm:block">
                         <p className="text-[0.7rem] uppercase tracking-wider text-muted-foreground">
-                          from
+                          {custom ? "priced on review" : "from"}
                         </p>
                         <p className="mt-1 whitespace-nowrap font-serif text-2xl leading-none">
-                          {formatAud(service.base_price_cents)}
-                          <span className="text-base text-muted-foreground">
-                            {unitSuffix(service.price_unit)}
-                          </span>
+                          {custom ? (
+                            "By quote"
+                          ) : (
+                            <>
+                              {formatAud(service.base_price_cents)}
+                              <span className="text-base text-muted-foreground">
+                                {unitSuffix(service.price_unit)}
+                              </span>
+                            </>
+                          )}
                         </p>
                       </div>
                       <ArrowUpRight className="hidden size-5 shrink-0 translate-y-1 text-muted-foreground/50 transition-all duration-300 ease-out group-hover:translate-x-0.5 group-hover:translate-y-0 group-hover:text-brand sm:block" />

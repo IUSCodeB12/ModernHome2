@@ -196,7 +196,18 @@ export default async function PortalDetailPage({
             .sort((a, b) => a.sort_order - b.sort_order)
             .map((q) => {
               const label = answerLabel(q, answers);
-              return label ? <Row key={q.id} label={q.question_text} value={label} /> : null;
+              if (!label) return null;
+              // Free-text answers are paragraphs — give them their own block.
+              return q.input_type === "text" ? (
+                <div key={q.id} className="py-1.5">
+                  <p className="text-sm text-muted-foreground">{q.question_text}</p>
+                  <p className="mt-1 whitespace-pre-wrap text-sm font-medium">
+                    {label}
+                  </p>
+                </div>
+              ) : (
+                <Row key={q.id} label={q.question_text} value={label} />
+              );
             })}
           {quote.photo_urls.length > 0 && (
             <Row label="Photos" value={`${quote.photo_urls.length} attached`} />

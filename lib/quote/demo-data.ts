@@ -1,4 +1,5 @@
 import type { QuoteWizardData, ServiceWithQuestions } from "@/lib/quote/types";
+import { CUSTOM_SERVICE_SLUG } from "@/lib/services/custom";
 
 /**
  * Fallback wizard data used when Supabase env vars are not configured
@@ -14,7 +15,7 @@ function q(
   id: string,
   service_id: string,
   question_text: string,
-  input_type: "single_select" | "multi_select" | "number" | "boolean",
+  input_type: "single_select" | "multi_select" | "number" | "boolean" | "text",
   options: unknown,
   sort_order: number,
   requires_photo = false,
@@ -165,6 +166,26 @@ const demoServices: ServiceWithQuestions[] = [
         { label: "I have my own unit", value: "existing_unit", price_modifier_cents: -5000, price_modifier_pct: null },
       ], 1),
       q("d5-wall", "00000000-0000-4000-8000-000000000005", "What type of wall will the heater mount to?", "single_select", wallTypeOptions, 2, true, "Take a photo of the wall where the heater will go, including the nearest power point."),
+    ],
+  },
+  {
+    // Catch-all: no price, quoted by hand. Mirrors 20260726100100.
+    id: "00000000-0000-4000-8000-000000000099",
+    slug: CUSTOM_SERVICE_SLUG,
+    name: "Custom job",
+    description:
+      "Something else in mind? Describe the job and we'll come back to you with a fixed price.",
+    base_price_cents: 0,
+    price_unit: "fixed",
+    active: true,
+    sort_order: 99,
+    ar_model_glb_url: null,
+    ar_model_usdz_url: null,
+    hero_image_url: null,
+    created_at: "",
+    updated_at: "",
+    service_questions: [
+      q("d99-brief", "00000000-0000-4000-8000-000000000099", "What would you like done?", "text", null, 1, true, "Photos of the space help us price accurately — the wall or room, plus anything tricky like power points, brickwork or tight access."),
     ],
   },
 ];

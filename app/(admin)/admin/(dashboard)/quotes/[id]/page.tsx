@@ -96,12 +96,20 @@ export default async function AdminQuoteDetailPage({
             <div className="mt-2 divide-y">
               {questions.map((q) => {
                 const label = answerLabel(q, answers);
-                return label ? (
+                if (!label) return null;
+                // A free-text answer is a paragraph — stack it rather than
+                // squeezing it into a right-aligned cell.
+                return q.input_type === "text" ? (
+                  <div key={q.id} className="py-1.5 text-sm">
+                    <p className="text-muted-foreground">{q.question_text}</p>
+                    <p className="mt-1 whitespace-pre-wrap font-medium">{label}</p>
+                  </div>
+                ) : (
                   <div key={q.id} className="flex justify-between gap-4 py-1.5 text-sm">
                     <span className="text-muted-foreground">{q.question_text}</span>
                     <span className="text-right font-medium">{label}</span>
                   </div>
-                ) : null;
+                );
               })}
             </div>
           </section>

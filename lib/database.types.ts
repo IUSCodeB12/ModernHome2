@@ -534,7 +534,8 @@ export type Database = {
         | "single_select"
         | "multi_select"
         | "number"
-        | "boolean";
+        | "boolean"
+        | "text";
       quote_status: "pending" | "approved" | "adjusted" | "rejected" | "expired";
       booking_status:
         | "enquiry"

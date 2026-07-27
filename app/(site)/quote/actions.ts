@@ -5,6 +5,7 @@ import { addMinutes, isBefore } from "date-fns";
 import { calculateDepositCents, calculateEstimate, type Answers } from "@/lib/quote/estimate";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, isSupabaseConfigured } from "@/lib/supabase/admin";
+import { isCustomService } from "@/lib/services/custom";
 
 const answerValue = z.union([
   z.string(),
@@ -81,12 +82,14 @@ export async function submitQuoteRequest(
     return { ok: false, error: "That service is no longer available." };
   }
 
-  const estimate = calculateEstimate(
-    service,
-    service.service_questions,
-    payload.answers as Answers
-  );
-  const depositCents = calculateDepositCents(estimate);
+  // A custom job has no auto-estimate — the admin prices it by hand with the
+  // line-item builder. Store nulls rather than a misleading $0 range, and hold
+  // the deposit at 0 until there's a real number to take a percentage of.
+  const custom = isCustomService(service);
+  const estimate = custom
+    ? null
+    : calculateEstimate(service, service.service_questions, payload.answers as Answers);
+  const depositCents = estimate ? calculateDepositCents(estimate) : 0;
 
   const slotStart = new Date(payload.slot.start);
   const slotEnd = new Date(payload.slot.end);
@@ -118,8 +121,8 @@ export async function submitQuoteRequest(
       service_id: payload.serviceId,
       answers: payload.answers,
       photo_urls: photoUrls,
-      estimate_low_cents: estimate.low_cents,
-      estimate_high_cents: estimate.high_cents,
+      estimate_low_cents: estimate?.low_cents ?? null,
+      estimate_high_cents: estimate?.high_cents ?? null,
       status: "pending",
     })
     .select("id")

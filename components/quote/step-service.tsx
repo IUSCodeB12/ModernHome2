@@ -7,16 +7,19 @@ import {
   Flame,
   GalleryVerticalEnd,
   Lightbulb,
+  PencilRuler,
   Tv,
   Wrench,
   type LucideIcon,
 } from "lucide-react";
 import { formatAud } from "@/lib/quote/estimate";
+import { CUSTOM_SERVICE_SLUG, isCustomService } from "@/lib/services/custom";
 import type { ServiceWithQuestions } from "@/lib/quote/types";
 import { cn } from "@/lib/utils";
 
 /** A recognisable icon per service, so photo-less tiles aren't all identical. */
 function iconForSlug(slug: string): LucideIcon {
+  if (slug === CUSTOM_SERVICE_SLUG) return PencilRuler;
   if (slug.includes("tv-wall")) return Tv;
   if (slug.includes("floating")) return GalleryVerticalEnd;
   if (slug.includes("showcase")) return Boxes;
@@ -92,13 +95,22 @@ export function StepService({
                   <p className="font-serif text-lg leading-tight tracking-tight">
                     {service.name}
                   </p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    from{" "}
-                    <span className="font-medium text-foreground">
-                      {formatAud(service.base_price_cents)}
-                    </span>
-                    {priceSuffix(service.price_unit)}
-                  </p>
+                  {isCustomService(service) ? (
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">
+                        Priced on review
+                      </span>{" "}
+                      — tell us what you need
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      from{" "}
+                      <span className="font-medium text-foreground">
+                        {formatAud(service.base_price_cents)}
+                      </span>
+                      {priceSuffix(service.price_unit)}
+                    </p>
+                  )}
                 </div>
                 <span
                   aria-hidden

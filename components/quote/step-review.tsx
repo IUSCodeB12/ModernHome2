@@ -11,6 +11,7 @@ import {
   type Answers,
 } from "@/lib/quote/estimate";
 import { BUSINESS_TIME_ZONE } from "@/lib/slots";
+import { isCustomService } from "@/lib/services/custom";
 import type { ServiceWithQuestions } from "@/lib/quote/types";
 import type { WizardState } from "@/lib/quote/wizard-state";
 import { allPhotoEntries } from "@/components/quote/photo-store";
@@ -36,6 +37,8 @@ function answerLabel(
       return `${value}`;
     case "boolean":
       return value === true ? (options[0]?.label ?? "Yes") : "No";
+    case "text":
+      return String(value);
   }
 }
 
@@ -63,6 +66,7 @@ export function StepReview({
   onBack: () => void;
   onSubmit: () => void;
 }) {
+  const custom = isCustomService(service);
   const estimate = useMemo(
     () => calculateEstimate(service, service.service_questions, state.answers),
     [service, state.answers]
@@ -109,23 +113,41 @@ export function StepReview({
       </section>
 
       <section className="rounded-xl border bg-muted/40 p-4">
-        <div className="flex items-baseline justify-between">
-          <span className="text-sm text-muted-foreground">Estimated price</span>
-          <span className="text-xl font-semibold">
-            {formatAud(estimate.low_cents)} – {formatAud(estimate.high_cents)}
-          </span>
-        </div>
-        <div className="mt-2 flex items-baseline justify-between">
-          <span className="text-sm text-muted-foreground">
-            Deposit to hold your spot
-          </span>
-          <span className="font-semibold">{formatAud(depositCents)}</span>
-        </div>
-        <p className="mt-2 text-xs text-muted-foreground">
-          The final price is confirmed after we review your details and photos.
-          Your deposit comes off the total and is fully refundable if we can&apos;t
-          do the job.
-        </p>
+        {custom ? (
+          <>
+            <div className="flex items-baseline justify-between gap-4">
+              <span className="text-sm text-muted-foreground">Your price</span>
+              <span className="text-right font-semibold">
+                Quoted after review
+              </span>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Custom jobs aren&apos;t priced instantly. We&apos;ll go through your
+              description and photos, then send a fixed price broken down line by
+              line — nothing to pay until you accept it.
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="flex items-baseline justify-between">
+              <span className="text-sm text-muted-foreground">Estimated price</span>
+              <span className="text-xl font-semibold">
+                {formatAud(estimate.low_cents)} – {formatAud(estimate.high_cents)}
+              </span>
+            </div>
+            <div className="mt-2 flex items-baseline justify-between">
+              <span className="text-sm text-muted-foreground">
+                Deposit to hold your spot
+              </span>
+              <span className="font-semibold">{formatAud(depositCents)}</span>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              The final price is confirmed after we review your details and photos.
+              Your deposit comes off the total and is fully refundable if we
+              can&apos;t do the job.
+            </p>
+          </>
+        )}
       </section>
 
       <label className="flex items-start gap-2 text-sm">
@@ -139,8 +161,9 @@ export function StepReview({
           className="mt-0.5 size-4"
         />
         <span>
-          I understand this is an estimate and the final quote may be adjusted
-          after review.
+          {custom
+            ? "I understand this job will be priced after review, and my spot is held in the meantime."
+            : "I understand this is an estimate and the final quote may be adjusted after review."}
         </span>
       </label>
       {agreeError && <p className="text-sm text-destructive">{agreeError}</p>}
@@ -168,7 +191,11 @@ export function StepReview({
             onSubmit();
           }}
         >
-          {submitting ? "Booking…" : "Pay deposit & book"}
+          {submitting
+            ? "Booking…"
+            : custom
+              ? "Request my quote"
+              : "Pay deposit & book"}
         </Button>
       </div>
       <p className="text-center text-xs text-muted-foreground">

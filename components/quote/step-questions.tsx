@@ -7,6 +7,8 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { isCustomService } from "@/lib/services/custom";
 import {
   calculateEstimate,
   formatAud,
@@ -34,6 +36,12 @@ function buildSchema(service: ServiceWithQuestions) {
         break;
       case "boolean":
         shape[question.id] = z.boolean().default(false);
+        break;
+      case "text":
+        shape[question.id] = z
+          .string()
+          .min(20, "A sentence or two helps us quote accurately")
+          .max(2000, "That's a bit long — keep it under 2000 characters");
         break;
     }
   }
@@ -80,6 +88,7 @@ export function StepQuestions({
     mode: "onTouched",
   });
 
+  const custom = isCustomService(service);
   const watched = useWatch({ control: form.control });
   const estimate = useMemo(
     () =>
@@ -185,6 +194,14 @@ export function StepQuestions({
               />
             )}
 
+            {question.input_type === "text" && (
+              <Textarea
+                rows={5}
+                placeholder="Tell us what you'd like done, where it is in the house, and anything we should know about access or finish."
+                {...form.register(question.id)}
+              />
+            )}
+
             {question.input_type === "number" && (
               <div className="flex items-center gap-2">
                 <Input
@@ -245,12 +262,21 @@ export function StepQuestions({
 
       {/* Live estimate */}
       <div className="sticky bottom-0 -mx-4 border-t bg-background/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:rounded-lg sm:border sm:bg-muted/40">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Estimated price</span>
-          <span className="text-lg font-semibold">
-            {formatAud(estimate.low_cents)} – {formatAud(estimate.high_cents)}
-          </span>
-        </div>
+        {custom ? (
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-sm text-muted-foreground">Your price</span>
+            <span className="text-right text-sm font-medium">
+              We&apos;ll review and send a fixed price
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Estimated price</span>
+            <span className="text-lg font-semibold">
+              {formatAud(estimate.low_cents)} – {formatAud(estimate.high_cents)}
+            </span>
+          </div>
+        )}
         <div className="mt-3 flex gap-3">
           <Button type="button" variant="outline" onClick={onBack} className="flex-1">
             Back
