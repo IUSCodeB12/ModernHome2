@@ -62,7 +62,7 @@ export function ServicesGrid({ services }: { services: ServiceWithQuestions[] })
                     <h3 className="font-serif text-2xl leading-tight tracking-tight transition-transform duration-300 ease-out group-hover:translate-x-0.5 sm:text-[1.75rem]">
                       {service.name}
                     </h3>
-                    {service.ar_model_glb_url && (
+                    {(service.ar_model_glb_url || service.ar_model_usdz_url) && (
                       <span className="inline-flex items-center gap-1 rounded-full border border-brand/35 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-brand">
                         <Boxes className="size-3" /> AR
                       </span>

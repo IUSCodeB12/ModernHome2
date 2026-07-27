@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ArViewer } from "@/components/ar/ar-viewer";
 import { EstimatePreview } from "@/components/services/estimate-preview";
 import { JsonLd } from "@/components/seo/json-ld";
-import { getServiceBySlug } from "@/lib/services/data";
+import { getServiceBySlug, getServicePhotos } from "@/lib/services/data";
 import { getServiceContent } from "@/lib/services/content";
 import { formatAud, parseOptions } from "@/lib/quote/estimate";
 import { breadcrumbLd, faqLd, serviceLd } from "@/lib/seo/json-ld";
@@ -36,6 +36,11 @@ export default async function ServiceDetailPage({
   const { slug } = await params;
   const service = await getServiceBySlug(slug);
   if (!service) notFound();
+
+  // Curated showcase photo doubles as the AR poster; hero_image_url is the
+  // older per-service field and is mostly unset.
+  const photos = await getServicePhotos();
+  const photo = photos[service.id] ?? service.hero_image_url;
 
   const highlights = service.service_questions
     .flatMap((q) => parseOptions(q.options).slice(0, 2).map((o) => o.label))
@@ -162,12 +167,12 @@ export default async function ServiceDetailPage({
         </div>
       </section>
 
-      {service.ar_model_glb_url && (
+      {(service.ar_model_glb_url || service.ar_model_usdz_url) && (
         <div className="mt-10">
           <ArViewer
             glbUrl={service.ar_model_glb_url}
             usdzUrl={service.ar_model_usdz_url}
-            poster={service.hero_image_url}
+            poster={photo}
             alt={`3D model of ${service.name}`}
           />
         </div>
