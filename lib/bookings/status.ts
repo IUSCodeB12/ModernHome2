@@ -62,3 +62,16 @@ export function canTransition(from: BookingStatus, to: BookingStatus): boolean {
 export function allowedTransitions(from: BookingStatus): BookingStatus[] {
   return TRANSITIONS[from] ?? [];
 }
+
+/**
+ * Whether a (re)built quote can still reach the customer from this state.
+ *
+ * The portal's accept/decline panel only renders while the booking is
+ * 'quoted', so a quote saved outside these states never reaches them. Derived
+ * from TRANSITIONS rather than hardcoded, so it can't drift from the state
+ * machine: a job that's already underway ('booked' onwards) has to be walked
+ * back through the pipeline deliberately, not flipped by saving a quote.
+ */
+export function canSendQuote(status: BookingStatus): boolean {
+  return status === "quoted" || canTransition(status, "quoted");
+}

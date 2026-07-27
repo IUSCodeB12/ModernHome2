@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { formatInTimeZone } from "date-fns-tz";
 import { ArrowLeft } from "lucide-react";
 import { getAdminQuote } from "@/lib/admin/quotes-data";
+import type { LineItem } from "@/lib/invoice/calc";
 import { answerLabel } from "@/lib/quote/answers";
 import { formatAud, type Answers } from "@/lib/quote/estimate";
 import { BUSINESS_TIME_ZONE } from "@/lib/slots";
@@ -141,6 +142,7 @@ export default async function AdminQuoteDetailPage({
             quoteId={quote.id}
             status={quote.status}
             estimateMidpointCents={midpoint}
+            hasCustomQuote={((quote.quote_line_items ?? []) as LineItem[]).length > 0}
           />
         </div>
       </div>

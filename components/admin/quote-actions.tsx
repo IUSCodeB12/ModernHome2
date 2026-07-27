@@ -34,14 +34,18 @@ export function QuoteActions({
   quoteId,
   status,
   estimateMidpointCents,
+  hasCustomQuote = false,
 }: {
   quoteId: string;
   status: string;
   estimateMidpointCents: number;
+  /** True when a custom line-item quote already exists on this request. */
+  hasCustomQuote?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [adjustOpen, setAdjustOpen] = useState(false);
+  const [replaceOpen, setReplaceOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [items, setItems] = useState<Draft[]>([
@@ -49,6 +53,7 @@ export function QuoteActions({
   ]);
 
   const decided = status === "rejected" || status === "expired";
+  const canApproveAsIs = estimateMidpointCents > 0;
 
   const parsedItems = items.map((it) => ({
     description: it.description,
@@ -57,11 +62,13 @@ export function QuoteActions({
   }));
   const totals = calcInvoiceTotals(normalizeLineItems(parsedItems));
 
-  function handleApprove() {
+  function handleApprove(replaceCustomQuote = false) {
     startTransition(async () => {
-      const res = await approveQuote({ quoteId });
+      const res = await approveQuote({ quoteId, replaceCustomQuote });
       if (res.ok) {
         toast.success(`Approved at ${formatAud(res.data.finalQuoteCents)}. Customer notified.`);
+        if (res.data.warning) toast.warning(res.data.warning);
+        setReplaceOpen(false);
         router.refresh();
       } else {
         toast.error(res.error);
@@ -74,6 +81,7 @@ export function QuoteActions({
       const res = await adjustQuote({ quoteId, lineItems: parsedItems });
       if (res.ok) {
         toast.success(`Quote adjusted to ${formatAud(res.data.finalQuoteCents)}. Customer notified.`);
+        if (res.data.warning) toast.warning(res.data.warning);
         setAdjustOpen(false);
         router.refresh();
       } else {
@@ -104,9 +112,22 @@ export function QuoteActions({
         </p>
       ) : (
         <div className="mt-3 space-y-2">
-          <Button className="w-full" onClick={handleApprove} disabled={pending}>
-            <Check /> Approve as-is ({formatAud(estimateMidpointCents)})
-          </Button>
+          {/* A custom job carries no auto-estimate, so "approve at the
+              midpoint" would approve it at $0. Pricing has to go through the
+              line-item builder. */}
+          {canApproveAsIs ? (
+            <Button
+              className="w-full"
+              onClick={() => (hasCustomQuote ? setReplaceOpen(true) : handleApprove())}
+              disabled={pending}
+            >
+              <Check /> Approve as-is ({formatAud(estimateMidpointCents)})
+            </Button>
+          ) : (
+            <p className="rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground">
+              No auto-estimate for this request — build the price below.
+            </p>
+          )}
           <Button
             variant="outline"
             className="w-full"
@@ -220,6 +241,28 @@ export function QuoteActions({
             </Button>
             <Button onClick={handleAdjust} disabled={pending || totals.total_cents <= 0}>
               Save & send ({formatAud(totals.total_cents)})
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm discarding an existing custom quote */}
+      <Dialog open={replaceOpen} onOpenChange={setReplaceOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Discard the custom quote?</DialogTitle>
+            <DialogDescription>
+              This request already has a custom line-item breakdown. Approving
+              as-is replaces it with the flat estimate midpoint of{" "}
+              {formatAud(estimateMidpointCents)} and the line items are lost.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReplaceOpen(false)} disabled={pending}>
+              Keep custom quote
+            </Button>
+            <Button variant="destructive" onClick={() => handleApprove(true)} disabled={pending}>
+              Discard & approve
             </Button>
           </DialogFooter>
         </DialogContent>

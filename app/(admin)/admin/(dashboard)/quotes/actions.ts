@@ -3,11 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { adminAction, type ActionResult } from "@/lib/admin/guard";
-import { calcInvoiceTotals, normalizeLineItems } from "@/lib/invoice/calc";
+import { canSendQuote } from "@/lib/bookings/status";
+import { calcInvoiceTotals, normalizeLineItems, type LineItem } from "@/lib/invoice/calc";
 import { notifyCustomer } from "@/lib/email/notify";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 
-const idSchema = z.object({ quoteId: z.string().min(1) });
+const idSchema = z.object({
+  quoteId: z.string().min(1),
+  /** Opt-in to discarding an existing custom line-item quote (see approveQuote). */
+  replaceCustomQuote: z.boolean().optional(),
+});
 
 const lineItemSchema = z.object({
   description: z.string().min(1, "Description required").max(200),
@@ -32,7 +37,7 @@ function demoOk<T extends object>(data: T): ActionResult<T> {
 /** Approve at the estimate midpoint; move booking to 'quoted'; email customer. */
 export async function approveQuote(
   input: z.input<typeof idSchema>
-): Promise<ActionResult<{ finalQuoteCents: number }>> {
+): Promise<ActionResult<{ finalQuoteCents: number; warning?: string }>> {
   const parsed = idSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid request." };
 
@@ -41,14 +46,32 @@ export async function approveQuote(
   return adminAction(async ({ admin }) => {
     const { data: quote } = await admin
       .from("quote_requests")
-      .select("id, customer_id, estimate_low_cents, estimate_high_cents, profiles(full_name), services(name)")
+      .select("id, customer_id, estimate_low_cents, estimate_high_cents, quote_line_items, profiles(full_name), services(name)")
       .eq("id", parsed.data.quoteId)
       .single();
     if (!quote) throw new Error("Quote not found.");
 
-    const low = quote.estimate_low_cents ?? 0;
-    const high = quote.estimate_high_cents ?? 0;
-    const finalQuoteCents = Math.round((low + high) / 2);
+    // Approving at the midpoint discards any custom line-item quote already
+    // built for this request. That's real work to lose, so make it explicit
+    // rather than silently clobbering it.
+    const existingItems = (quote.quote_line_items ?? []) as LineItem[];
+    if (existingItems.length > 0 && !parsed.data.replaceCustomQuote) {
+      throw new Error(
+        "This quote already has a custom breakdown — approving as-is would discard it."
+      );
+    }
+
+    // No auto-estimate (custom job) means there's no midpoint to approve at —
+    // approving would quote the customer $0. Force the line-item builder.
+    if (quote.estimate_low_cents == null || quote.estimate_high_cents == null) {
+      throw new Error(
+        "This request has no auto-estimate — use Adjust price to build the quote."
+      );
+    }
+
+    const finalQuoteCents = Math.round(
+      (quote.estimate_low_cents + quote.estimate_high_cents) / 2
+    );
 
     const { error } = await admin
       .from("quote_requests")
@@ -60,7 +83,7 @@ export async function approveQuote(
       .eq("id", quote.id);
     if (error) throw new Error(error.message);
 
-    await moveBookingToQuoted(admin, quote.id);
+    const moved = await moveBookingToQuoted(admin, quote.id);
     await notifyCustomer(admin, quote.customer_id, "quote_ready", {
       service: quote.services?.name,
       amountCents: finalQuoteCents,
@@ -68,14 +91,14 @@ export async function approveQuote(
 
     revalidatePath("/admin/quotes");
     revalidatePath("/admin/bookings");
-    return { finalQuoteCents };
+    return { finalQuoteCents, warning: requoteWarning(moved) };
   });
 }
 
 /** Adjust with a line-item editor; recompute totals; status 'adjusted'. */
 export async function adjustQuote(
   input: z.input<typeof adjustSchema>
-): Promise<ActionResult<{ finalQuoteCents: number }>> {
+): Promise<ActionResult<{ finalQuoteCents: number; warning?: string }>> {
   const parsed = adjustSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid line items." };
@@ -103,7 +126,7 @@ export async function adjustQuote(
       .eq("id", quote.id);
     if (error) throw new Error(error.message);
 
-    await moveBookingToQuoted(admin, quote.id);
+    const moved = await moveBookingToQuoted(admin, quote.id);
     await notifyCustomer(admin, quote.customer_id, "quote_adjusted", {
       service: quote.services?.name,
       amountCents: totals.total_cents,
@@ -112,7 +135,7 @@ export async function adjustQuote(
 
     revalidatePath("/admin/quotes");
     revalidatePath("/admin/bookings");
-    return { finalQuoteCents: totals.total_cents };
+    return { finalQuoteCents: totals.total_cents, warning: requoteWarning(moved) };
   });
 }
 
@@ -156,11 +179,39 @@ export async function rejectQuote(
 
 type Admin = Awaited<ReturnType<typeof import("@/lib/admin/guard").assertAdmin>>["admin"];
 
-async function moveBookingToQuoted(admin: Admin, quoteId: string) {
-  await admin
+type MoveResult =
+  | { moved: true }
+  | { moved: false; reason: "no_booking" | "too_late"; status?: string };
+
+async function moveBookingToQuoted(
+  admin: Admin,
+  quoteId: string
+): Promise<MoveResult> {
+  const { data: booking } = await admin
+    .from("bookings")
+    .select("id, status")
+    .eq("quote_request_id", quoteId)
+    .maybeSingle();
+  if (!booking) return { moved: false, reason: "no_booking" };
+
+  if (!canSendQuote(booking.status)) {
+    return { moved: false, reason: "too_late", status: booking.status };
+  }
+
+  const { error } = await admin
     .from("bookings")
     .update({ status: "quoted" })
-    .eq("quote_request_id", quoteId)
-    .eq("status", "enquiry");
+    .eq("id", booking.id);
+  if (error) throw new Error(error.message);
+  return { moved: true };
+}
+
+/** Tells the admin when a saved quote won't actually surface to the customer. */
+function requoteWarning(move: MoveResult): string | undefined {
+  if (move.moved) return undefined;
+  if (move.reason === "no_booking") {
+    return "Saved, but this request has no booking, so the customer has nothing to accept.";
+  }
+  return `Saved, but the booking is already ${move.status} — the customer won't see an accept/decline prompt.`;
 }
 
