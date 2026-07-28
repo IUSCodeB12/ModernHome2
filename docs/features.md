@@ -41,11 +41,12 @@ in `lib/<domain>/`. Server actions are colocated with their route as `actions.ts
 ## Bookings lifecycle (the big cross-cutting one)
 Enquiry → quote → accept → deposit → job → invoice → receipt.
 - **Customer routes:** `app/(site)/portal/{page,[id]/page,[id]/actions,[id]/receipt/route}.ts`
-- **Customer UI:** `components/portal/{quote-response,payment-panel,reschedule-request}.tsx`
+- **Customer UI:** `components/portal/{quote-response,payment-panel,reschedule-request,journey-rail,portal-status,photo-strip}.tsx`
 - **Admin routes:** `app/(admin)/.../bookings/{page,actions}.ts`,
   `app/(admin)/.../quotes/{page,[id]/page,actions}.ts`, `.../invoices/{page,actions}.ts`
 - **Admin UI:** `components/admin/{bookings-view,booking-drawer,quotes-table,quote-actions,quote-photos,invoice-editor}.tsx`
-- **Logic:** `lib/bookings/status.ts` (state machine), `lib/invoice/{calc,create,receipt-pdf}.tsx`,
+- **Logic:** `lib/bookings/status.ts` (state machine), `lib/bookings/journey.ts` (the
+  5-stage customer-facing view of those statuses), `lib/invoice/{calc,create,receipt-pdf}.tsx`,
   `lib/email/{notify,send}.ts`, `lib/admin/{bookings-data,quotes-data,invoices-data}.ts`
 - **DB:** `bookings`, `quote_requests`, `invoices` (+ slot exclusion constraint, status-sync trigger)
 
