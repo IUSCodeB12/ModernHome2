@@ -5,12 +5,24 @@ import { Button } from "@/components/ui/button";
 import { ArViewer } from "@/components/ar/ar-viewer";
 import { EstimatePreview } from "@/components/services/estimate-preview";
 import { JsonLd } from "@/components/seo/json-ld";
-import { getServiceBySlug, getServicePhotos } from "@/lib/services/data";
+import { getActiveServices, getServiceBySlug, getServicePhotos } from "@/lib/services/data";
 import { getServiceContent } from "@/lib/services/content";
 import { formatAud, parseOptions } from "@/lib/quote/estimate";
 import { breadcrumbLd, faqLd, serviceLd } from "@/lib/seo/json-ld";
 
-export const dynamic = "force-dynamic";
+// Static + revalidated. Admin edits call revalidatePath, so changes are
+// immediate; this is just a safety net.
+export const revalidate = 3600;
+
+/**
+ * Prerender every service page at build time. Without this the segment stays
+ * dynamic and each page is server-rendered on demand — there are only a
+ * handful of services, so building them all is cheap and makes them CDN-served.
+ */
+export async function generateStaticParams() {
+  const services = await getActiveServices();
+  return services.map((service) => ({ slug: service.slug }));
+}
 
 export async function generateMetadata({
   params,

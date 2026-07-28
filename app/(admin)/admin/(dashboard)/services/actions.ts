@@ -53,7 +53,10 @@ export async function updateService(
     if (error) throw new Error(error.message);
     revalidatePath("/admin/services");
     revalidatePath("/quote");
-    revalidatePath("/services");
+    // The public pages are statically cached now, so every surface showing a
+    // service has to be busted: /services, each /services/[slug], and the
+    // homepage grid. "/" with "layout" covers the lot.
+    revalidatePath("/", "layout");
     return {};
   });
 }
@@ -79,6 +82,7 @@ export async function updateQuestion(
     if (error) throw new Error(error.message);
     revalidatePath("/admin/services");
     revalidatePath("/quote");
+    revalidatePath("/", "layout");
     return {};
   });
 }

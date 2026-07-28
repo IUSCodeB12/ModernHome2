@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/database.types";
 
@@ -53,7 +53,7 @@ export async function getGalleryItems(): Promise<{
     return { items: DEMO_ITEMS, filters: dedupeFilters(DEMO_ITEMS), demo: true };
   }
 
-  const supabase = await createClient();
+  const supabase = createPublicClient();
   const { data } = await supabase
     .from("gallery_items")
     .select("id, title, before_image_url, after_image_url, featured, service_id, services(name, slug)")

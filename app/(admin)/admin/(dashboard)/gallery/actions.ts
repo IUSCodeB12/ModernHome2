@@ -37,6 +37,7 @@ export async function createGalleryItem(
     if (error) throw new Error(error.message);
     revalidatePath("/admin/gallery");
     revalidatePath("/gallery");
+    revalidatePath("/", "layout"); // homepage shows featured gallery items
     return {};
   });
 }
@@ -56,6 +57,7 @@ export async function toggleFeatured(
     if (error) throw new Error(error.message);
     revalidatePath("/admin/gallery");
     revalidatePath("/gallery");
+    revalidatePath("/", "layout"); // homepage shows featured gallery items
     return {};
   });
 }
@@ -72,6 +74,7 @@ export async function deleteGalleryItem(
     if (error) throw new Error(error.message);
     revalidatePath("/admin/gallery");
     revalidatePath("/gallery");
+    revalidatePath("/", "layout"); // homepage shows featured gallery items
     return {};
   });
 }
@@ -91,6 +94,7 @@ export async function reorderGallery(
     );
     revalidatePath("/admin/gallery");
     revalidatePath("/gallery");
+    revalidatePath("/", "layout"); // homepage shows featured gallery items
     return {};
   });
 }

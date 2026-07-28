@@ -14,6 +14,7 @@ import { usePathname } from "next/navigation";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/site/user-menu";
+import { useSessionEmail } from "@/hooks/use-session-email";
 import { cn } from "@/lib/utils";
 
 // Lazy — framer-motion loads only on the first mobile-menu tap.
@@ -38,7 +39,9 @@ function PlusMark({ className }: { className?: string }) {
   );
 }
 
-export function SiteHeader({ email }: { email: string | null }) {
+export function SiteHeader() {
+  // Read in the browser, not passed from the layout — see the hook for why.
+  const email = useSessionEmail();
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
@@ -104,7 +107,9 @@ export function SiteHeader({ email }: { email: string | null }) {
                   </Link>
                 );
               })}
-              {!email && (
+              {/* `undefined` means we don't know yet — don't flash "Sign in"
+                  at someone who turns out to be signed in. */}
+              {email === null && (
                 <Link
                   href="/login"
                   className="rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -145,7 +150,7 @@ export function SiteHeader({ email }: { email: string | null }) {
 
       {/* Mobile disclosure menu — mounted (and framer-motion loaded) only
           after the first tap. */}
-      {everOpened && <MobileMenu open={open} links={navLinks} email={email} />}
+      {everOpened && <MobileMenu open={open} links={navLinks} email={email ?? null} />}
     </header>
   );
 }

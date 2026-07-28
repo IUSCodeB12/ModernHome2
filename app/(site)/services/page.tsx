@@ -8,7 +8,9 @@ import { formatAud } from "@/lib/quote/estimate";
 import { Reveal } from "@/components/home/reveal";
 import { CtaFinale } from "@/components/home/cta-finale";
 
-export const dynamic = "force-dynamic";
+// Static + revalidated. Admin edits call revalidatePath, so changes are
+// immediate; this is just a safety net.
+export const revalidate = 3600;
 
 export const metadata = {
   title: "Services & pricing",

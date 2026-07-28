@@ -6,16 +6,17 @@ import { ServicesGrid } from "@/components/home/services-grid";
 import { BeforeAfter } from "@/components/home/before-after";
 import { Testimonials } from "@/components/home/testimonials";
 import { Faq } from "@/components/home/faq";
-import { RecentJobs } from "@/components/home/recent-jobs";
 import { CtaFinale } from "@/components/home/cta-finale";
 import { JsonLd } from "@/components/seo/json-ld";
 import { getHomeData } from "@/lib/home/data";
 import { localBusinessLd } from "@/lib/seo/json-ld";
 
-export const dynamic = "force-dynamic";
+// Static + revalidated. Admin edits call revalidatePath, so changes are
+// immediate; this is just a safety net.
+export const revalidate = 3600;
 
 export default async function HomePage() {
-  const { services, featured, recent, heroSlides, showcase } = await getHomeData();
+  const { services, featured, heroSlides, showcase } = await getHomeData();
 
   return (
     <>
@@ -27,7 +28,6 @@ export default async function HomePage() {
       <ServicesGrid services={services} />
       <BeforeAfter items={featured} />
       <Testimonials />
-      <RecentJobs jobs={recent} />
       <Faq />
       <CtaFinale />
     </>

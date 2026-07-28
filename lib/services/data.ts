@@ -1,11 +1,11 @@
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 import { getDemoWizardData } from "@/lib/quote/demo-data";
 import type { ServiceWithQuestions } from "@/lib/quote/types";
 
 export async function getActiveServices(): Promise<ServiceWithQuestions[]> {
   if (!isSupabaseConfigured()) return getDemoWizardData().services;
-  const supabase = await createClient();
+  const supabase = createPublicClient();
   const { data } = await supabase
     .from("services")
     .select("*, service_questions(*)")
@@ -25,7 +25,7 @@ export async function getServiceBySlug(
   if (!isSupabaseConfigured()) {
     return getDemoWizardData().services.find((s) => s.slug === slug) ?? null;
   }
-  const supabase = await createClient();
+  const supabase = createPublicClient();
   const { data } = await supabase
     .from("services")
     .select("*, service_questions(*)")
@@ -49,7 +49,7 @@ export async function getServiceBySlug(
  */
 export async function getServicePhotos(): Promise<Record<string, string>> {
   if (!isSupabaseConfigured()) return {};
-  const supabase = await createClient();
+  const supabase = createPublicClient();
   const { data } = await supabase
     .from("service_showcase")
     .select("service_id, image_url")

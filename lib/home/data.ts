@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 import { getActiveServices } from "@/lib/services/data";
 import type { ServiceWithQuestions } from "@/lib/quote/types";
@@ -8,13 +8,6 @@ export type FeaturedItem = Pick<
   Tables<"gallery_items">,
   "id" | "title" | "before_image_url" | "after_image_url"
 >;
-
-export type RecentJob = {
-  id: string;
-  service: string;
-  suburb: string;
-  when: string;
-};
 
 export type HeroSlide = Pick<Tables<"hero_slides">, "id" | "image_url" | "headline">;
 
@@ -60,49 +53,39 @@ const DEMO_FEATURED: FeaturedItem[] = [
   { id: "d3", title: "Showcase cabinet build", before_image_url: "", after_image_url: "" },
 ];
 
-const DEMO_RECENT: RecentJob[] = [
-  { id: "r1", service: "TV Wall Mounting", suburb: "Richmond", when: "Tuesday" },
-  { id: "r2", service: "LED Strip Lighting", suburb: "Carlton", when: "last week" },
-  { id: "r3", service: "Floating Cabinet", suburb: "Fitzroy", when: "3 days ago" },
-  { id: "r4", service: "Room Heater", suburb: "Brunswick", when: "Monday" },
-  { id: "r5", service: "Showcase Cabinet", suburb: "Hawthorn", when: "last week" },
-];
-
 export type HomeData = {
   services: ServiceWithQuestions[];
   featured: FeaturedItem[];
-  recent: RecentJob[];
   heroSlides: HeroSlide[];
   showcase: ShowcasePanel[];
 };
 
+/**
+ * Everything the homepage renders. Reads only anon-visible tables through
+ * `createPublicClient`, so the page stays statically renderable — see
+ * `lib/supabase/public.ts` for why that matters.
+ */
 export async function getHomeData(): Promise<HomeData> {
-  const services = await getActiveServices();
-
   if (!isSupabaseConfigured()) {
     return {
-      services,
+      services: await getActiveServices(),
       featured: DEMO_FEATURED,
-      recent: DEMO_RECENT,
       heroSlides: [],
       showcase: DEMO_SHOWCASE,
     };
   }
 
-  const supabase = await createClient();
-  const [galleryRes, jobsRes, heroRes, showcaseRes] = await Promise.all([
+  const supabase = createPublicClient();
+  // One parallel round trip — getActiveServices used to be awaited first,
+  // which cost an extra sequential hop to the database for nothing.
+  const [services, galleryRes, heroRes, showcaseRes] = await Promise.all([
+    getActiveServices(),
     supabase
       .from("gallery_items")
       .select("id, title, before_image_url, after_image_url")
       .order("featured", { ascending: false })
       .order("sort_order")
       .limit(4),
-    supabase
-      .from("bookings")
-      .select("id, suburb, updated_at, status, quote_requests(services(name))")
-      .in("status", ["completed", "invoiced", "paid"])
-      .order("updated_at", { ascending: false })
-      .limit(6),
     supabase
       .from("hero_slides")
       .select("id, image_url, headline")
@@ -116,14 +99,6 @@ export async function getHomeData(): Promise<HomeData> {
   ]);
 
   const featured = galleryRes.data?.length ? galleryRes.data : DEMO_FEATURED;
-
-  const recent: RecentJob[] =
-    jobsRes.data?.map((b) => ({
-      id: b.id,
-      service: b.quote_requests?.services?.name ?? "Installation",
-      suburb: b.suburb ?? "Melbourne",
-      when: "recently",
-    })) ?? [];
 
   const showcase: ShowcasePanel[] =
     showcaseRes.data?.map((p) => ({
@@ -139,7 +114,6 @@ export async function getHomeData(): Promise<HomeData> {
   return {
     services,
     featured,
-    recent: recent.length ? recent : DEMO_RECENT,
     heroSlides: heroRes.data ?? [],
     showcase,
   };

@@ -55,7 +55,13 @@ per feature. Folder indexes: `components/README.md`, `lib/README.md`.
 ## Supabase clients (pick the right one)
 
 - `lib/supabase/client.ts` — browser client (client components)
-- `lib/supabase/server.ts` — cookie-bound server client (RLS as the signed-in user)
+- `lib/supabase/public.ts` — anon, **cookie-free** server client for public content
+  (services, gallery, hero slides, showcase). Use this in every public data loader:
+  touching cookies makes the route dynamic, which is what stopped the marketing pages
+  being CDN-cached. It's also the safety boundary — a cached page rendered with the
+  cookie client would serve one customer's rows to everyone.
+- `lib/supabase/server.ts` — cookie-bound server client (RLS as the signed-in user).
+  Only for signed-in reads (`/portal`, `/admin`) — never in a cacheable route.
 - `lib/supabase/admin.ts` — service-role client, **server-only**, bypasses RLS. Use only for
   cross-user reads (e.g. busy booking slots). Guarded by `isSupabaseConfigured()`.
 - `lib/supabase/middleware.ts` — session refresh + admin-route protection

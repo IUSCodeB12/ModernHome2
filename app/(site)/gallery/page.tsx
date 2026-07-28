@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { GalleryGrid } from "@/components/gallery/gallery-grid";
 import { getGalleryItems } from "@/lib/gallery/data";
 
-export const dynamic = "force-dynamic";
+// Static + revalidated. Admin edits call revalidatePath, so changes are
+// immediate; this is just a safety net.
+export const revalidate = 3600;
 
 export const metadata = {
   title: "Our work",
