@@ -4,7 +4,45 @@
  * copy only (no DB schema change); unknown slugs fall back to GENERIC.
  */
 
+import { parseOptions } from "@/lib/quote/estimate";
+import type { Tables } from "@/lib/database.types";
+
 export type ServiceFaq = { question: string; answer: string };
+
+/** One "we handle this variation" row on a service page. */
+export type ServiceCoverage = { label: string; values: string[] };
+
+/**
+ * "Options we cover", grouped by the question each option belongs to.
+ *
+ * The previous derivation took the first two option labels from every
+ * question and listed them flat under checkmarks. That produced bullets like
+ * `55"` and a bare `Yes`, and — worse — implied the sizes it truncated
+ * weren't covered at all. Grouping by question and listing every option says
+ * what is actually true, and stays correct when the admin edits a service.
+ *
+ * Free-text questions are skipped (there's nothing to enumerate) and booleans
+ * collapse to the affirmative option, since "No" isn't a capability.
+ */
+export function serviceCoverage(
+  questions: Tables<"service_questions">[]
+): ServiceCoverage[] {
+  return questions
+    .slice()
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .flatMap((question) => {
+      if (question.input_type === "text") return [];
+      const options = parseOptions(question.options);
+      if (options.length === 0) return [];
+
+      const values =
+        question.input_type === "boolean"
+          ? options.slice(0, 1).map((o) => o.label)
+          : options.map((o) => o.label);
+
+      return [{ label: question.question_text, values }];
+    });
+}
 
 export type ServiceContent = {
   /** One-line promise shown under the title. */

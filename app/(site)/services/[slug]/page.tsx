@@ -6,8 +6,8 @@ import { ArViewer } from "@/components/ar/ar-viewer";
 import { EstimatePreview } from "@/components/services/estimate-preview";
 import { JsonLd } from "@/components/seo/json-ld";
 import { getActiveServices, getServiceBySlug, getServicePhotos } from "@/lib/services/data";
-import { getServiceContent } from "@/lib/services/content";
-import { formatAud, parseOptions } from "@/lib/quote/estimate";
+import { getServiceContent, serviceCoverage } from "@/lib/services/content";
+import { formatAud } from "@/lib/quote/estimate";
 import { breadcrumbLd, faqLd, serviceLd } from "@/lib/seo/json-ld";
 
 // Static + revalidated. Admin edits call revalidatePath, so changes are
@@ -54,9 +54,7 @@ export default async function ServiceDetailPage({
   const photos = await getServicePhotos();
   const photo = photos[service.id] ?? service.hero_image_url;
 
-  const highlights = service.service_questions
-    .flatMap((q) => parseOptions(q.options).slice(0, 2).map((o) => o.label))
-    .slice(0, 6);
+  const coverage = serviceCoverage(service.service_questions);
 
   const content = getServiceContent(slug);
 
@@ -79,10 +77,31 @@ export default async function ServiceDetailPage({
         / {service.name}
       </p>
 
-      <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
+      {/*
+       * Lead with the work. This photo was already being fetched for the AR
+       * poster at the foot of the page — a page selling a visual trade has no
+       * business opening with a wall of text when the image is right here.
+       */}
+      {photo && (
+        <div className="relative mt-4 aspect-[16/9] w-full overflow-hidden rounded-2xl border border-border bg-[#1a1714] shadow-elev-3 sm:aspect-[21/9]">
+          {/* eslint-disable-next-line @next/next/no-img-element -- public bucket URL, no next/image domain config */}
+          <img
+            src={photo}
+            alt={`${service.name} — completed job`}
+            className="size-full object-cover"
+            fetchPriority="high"
+          />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(20,18,16,0.4))]" />
+          <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-[#c9a24b]/20" />
+        </div>
+      )}
+
+      <div className="mt-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{service.name}</h1>
-          <p className="mt-2 max-w-xl text-muted-foreground">
+          <h1 className="max-w-xl text-balance text-4xl leading-[1.1] tracking-tight sm:text-5xl">
+            {service.name}
+          </h1>
+          <p className="mt-3 max-w-xl text-muted-foreground">
             {service.description ?? content.tagline}
           </p>
         </div>
@@ -102,7 +121,9 @@ export default async function ServiceDetailPage({
 
       <div className="mt-6 flex flex-wrap gap-3">
         <Button asChild size="lg">
-          <Link href="/quote">
+          {/* Carry the slug — this used to drop people into the wizard with
+              nothing selected, so they had to pick the service twice. */}
+          <Link href={`/quote?service=${service.slug}`}>
             Get an instant quote <ArrowRight />
           </Link>
         </Button>
@@ -112,16 +133,27 @@ export default async function ServiceDetailPage({
         <EstimatePreview service={service} />
       </div>
 
-      {highlights.length > 0 && (
-        <section className="mt-10">
-          <h2 className="text-lg font-semibold">Options we cover</h2>
-          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-            {highlights.map((label) => (
-              <li key={label} className="flex items-center gap-2 text-sm">
-                <Check className="size-4 text-green-600" /> {label}
-              </li>
+      {coverage.length > 0 && (
+        <section className="mt-12">
+          <h2 className="font-serif text-2xl">Options we cover</h2>
+          <dl className="mt-4 grid gap-x-8 gap-y-5 sm:grid-cols-2">
+            {coverage.map((row) => (
+              <div key={row.label} className="border-t pt-3">
+                <dt className="text-sm text-muted-foreground">{row.label}</dt>
+                <dd className="mt-1.5 flex flex-wrap gap-1.5">
+                  {row.values.map((value) => (
+                    <span
+                      key={value}
+                      className="inline-flex items-center gap-1 rounded-full border bg-card px-2.5 py-1 text-sm"
+                    >
+                      <Check className="size-3.5 text-emerald-600" />
+                      {value}
+                    </span>
+                  ))}
+                </dd>
+              </div>
             ))}
-          </ul>
+          </dl>
         </section>
       )}
 

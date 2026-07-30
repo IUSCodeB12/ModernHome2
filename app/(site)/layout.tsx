@@ -1,12 +1,20 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
 import { FloatingCta } from "@/components/site/floating-cta";
+import { BUSINESS } from "@/lib/business";
 
 const footerLinks = [
   { href: "/services", label: "Services" },
   { href: "/gallery", label: "Gallery" },
   { href: "/quote", label: "Get a quote" },
   { href: "/portal", label: "My bookings" },
+];
+
+const legalLinks = [
+  { href: "/legal/privacy", label: "Privacy policy" },
+  { href: "/legal/terms-of-trade", label: "Terms of trade" },
+  { href: "/legal/cancellation", label: "Cancellations & refunds" },
+  { href: "/legal/warranty", label: "Workmanship warranty" },
 ];
 
 /**
@@ -54,23 +62,35 @@ export default function SiteLayout({
             ))}
           </div>
 
+          {/*
+           * Contact and registration details come from lib/business.ts and are
+           * omitted while null. Printing a stand-in ABN or a fake address is
+           * worse than printing nothing — it asserts something untrue on the
+           * page customers check to see whether we're a real operator.
+           */}
           <div className="space-y-2.5 text-sm text-muted-foreground">
             <p className="font-medium text-foreground">Contact</p>
-            <p>0400 000 000</p>
-            <p>hello@example.com.au</p>
-            <p>Servicing Greater Melbourne</p>
+            {BUSINESS.phone && <p>{BUSINESS.phone}</p>}
+            {BUSINESS.email && <p>{BUSINESS.email}</p>}
+            <p>Servicing {BUSINESS.serviceArea}</p>
           </div>
 
-          <div className="space-y-2.5 text-sm text-muted-foreground">
-            <p className="font-medium text-foreground">Business</p>
-            <p>ABN 00 000 000 000</p>
-            <p>Licence 000000C</p>
-            <p>Fully insured</p>
+          <div className="space-y-2.5 text-sm">
+            <p className="font-medium text-foreground">Legal</p>
+            {legalLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="block text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
         </div>
         <div className="border-t">
           <div className="mx-auto w-full max-w-6xl px-4 py-5 text-xs text-muted-foreground">
-            © {new Date().getFullYear()} ModernHome. All rights reserved.
+            © {new Date().getFullYear()} {BUSINESS.tradingName}. All rights reserved.
           </div>
         </div>
       </footer>

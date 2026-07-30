@@ -100,46 +100,64 @@ export function ServiceShowcase({ panels }: { panels: ShowcasePanel[] }) {
               }}
               className="md:flex md:min-h-[70vh] md:flex-col md:justify-center"
             >
-              {/* Mobile carries its own photo — there's no room to pin one */}
-              <div className="relative mb-5 aspect-[4/3] w-full overflow-hidden rounded-xl border border-border bg-[#1a1714] md:hidden">
-                {panel.image_url ? (
-                  <img
-                    src={panel.image_url}
-                    alt={panel.title}
-                    className="size-full object-cover"
-                    loading="lazy"
-                  />
-                ) : (
-                  <PhotoPlaceholder />
-                )}
-              </div>
+              {/*
+               * Stretched-link card. The title's ::after covers this wrapper,
+               * so anywhere on the card opens the service page — but the
+               * wrapper hugs the content rather than the panel, or on desktop
+               * 70vh of empty column would be clickable too. The quote button
+               * sits on a higher layer so it keeps its own destination.
+               */}
+              <div className="group relative">
+                {/* Mobile carries its own photo — there's no room to pin one */}
+                <div className="relative mb-5 aspect-[4/3] w-full overflow-hidden rounded-xl border border-border bg-[#1a1714] md:hidden">
+                  {panel.image_url ? (
+                    <img
+                      src={panel.image_url}
+                      alt={panel.title}
+                      className="size-full object-cover transition-transform duration-500 ease-[var(--ease-out-soft)] group-hover:scale-[1.03]"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <PhotoPlaceholder />
+                  )}
+                </div>
 
-              {panel.eyebrow && (
-                <p className="text-[0.7rem] font-medium uppercase tracking-[0.16em] text-brand">
-                  {panel.eyebrow}
-                </p>
-              )}
-              <h3 className="mt-3 font-serif text-3xl leading-tight tracking-tight sm:text-4xl">
-                {panel.title}
-              </h3>
-              {panel.body && (
-                <p className="mt-4 max-w-md text-base text-muted-foreground">
-                  {panel.body}
-                </p>
-              )}
-              <div className="mt-6 flex flex-wrap items-center gap-4">
-                {panel.slug && (
-                  <Button asChild>
-                    <Link href={`/quote?service=${panel.slug}`}>
-                      Get this quoted <ArrowRight />
+                {panel.eyebrow && (
+                  <p className="text-[0.7rem] font-medium uppercase tracking-[0.16em] text-brand">
+                    {panel.eyebrow}
+                  </p>
+                )}
+                <h3 className="mt-3 font-serif text-3xl leading-tight tracking-tight sm:text-4xl">
+                  {panel.slug ? (
+                    <Link
+                      href={`/services/${panel.slug}`}
+                      className="after:absolute after:inset-0 after:content-[''] hover:text-brand focus-visible:outline-none focus-visible:text-brand transition-colors"
+                    >
+                      {panel.title}
                     </Link>
-                  </Button>
+                  ) : (
+                    panel.title
+                  )}
+                </h3>
+                {panel.body && (
+                  <p className="mt-4 max-w-md text-base text-muted-foreground">
+                    {panel.body}
+                  </p>
                 )}
-                {panel.price_hint && (
-                  <span className="text-sm text-muted-foreground">
-                    {panel.price_hint}
-                  </span>
-                )}
+                <div className="relative z-10 mt-6 flex flex-wrap items-center gap-4">
+                  {panel.slug && (
+                    <Button asChild>
+                      <Link href={`/quote?service=${panel.slug}`}>
+                        Get this quoted <ArrowRight />
+                      </Link>
+                    </Button>
+                  )}
+                  {panel.price_hint && (
+                    <span className="text-sm text-muted-foreground">
+                      {panel.price_hint}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           ))}
