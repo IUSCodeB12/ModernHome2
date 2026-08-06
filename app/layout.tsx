@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { BRAND, SITE_ORIGIN } from "@/lib/brand";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,18 +20,20 @@ const fraunces = Fraunces({
   axes: ["opsz"],
 });
 
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://modern-home2.vercel.app";
+const siteUrl = SITE_ORIGIN;
+
+/** Headline used for the tab title and both social cards. */
+const headline = `${BRAND.name} — ${BRAND.tagline}`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "ModernHome — Your home, done properly",
-    template: "%s · ModernHome",
+    default: headline,
+    template: `%s · ${BRAND.name}`,
   },
   description:
     "Trusted local tradies for TV mounting, cabinets, LED lighting and heating. Get an instant, fixed-price quote online and book a time that suits — no callout fees.",
-  applicationName: "ModernHome",
+  applicationName: BRAND.name,
   keywords: [
     "TV wall mounting",
     "floating cabinet",
@@ -41,15 +44,15 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     type: "website",
-    siteName: "ModernHome",
-    title: "ModernHome — Your home, done properly",
+    siteName: BRAND.name,
+    title: headline,
     description:
       "Instant, fixed-price quotes for home installations. Book a trusted local tradie online.",
     url: siteUrl,
   },
   twitter: {
     card: "summary_large_image",
-    title: "ModernHome — Your home, done properly",
+    title: headline,
     description:
       "Instant, fixed-price quotes for home installations. Book a trusted local tradie online.",
   },

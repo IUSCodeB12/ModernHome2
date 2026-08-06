@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/site/logo";
 import { ArrowLeft } from "lucide-react";
 
 /**
@@ -42,17 +43,7 @@ export function AdminAuthShell({
         <div className="w-full max-w-sm">
           {/* Brand lockup — Fraunces wordmark, matching the public header */}
           <div className="mb-6 flex justify-center">
-            <Link href="/" className="group flex items-center gap-2">
-              <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-sm font-bold text-primary-foreground transition-transform duration-300 ease-[var(--ease-spring)] group-hover:rotate-3 group-hover:scale-105">
-                MH
-              </span>
-              <span
-                className="text-lg tracking-tight"
-                style={{ fontFamily: "var(--font-fraunces), Georgia, serif", fontWeight: 560 }}
-              >
-                ModernHome
-              </span>
-            </Link>
+            <Logo href="/" />
           </div>
 
           <div className="relative rounded-2xl border border-border/70 bg-card p-6 shadow-[var(--shadow-elev-2)] sm:p-8">

@@ -13,6 +13,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
+import { Logo } from "@/components/site/logo";
 
 export const metadata = {
   title: "Admin",
@@ -42,10 +43,7 @@ export default function AdminLayout({
     <div className="flex min-h-screen">
       <aside className="flex w-60 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
         <div className="flex h-16 items-center gap-2 border-b px-4">
-          <span className="flex size-8 items-center justify-center rounded-md bg-sidebar-primary text-xs font-bold text-sidebar-primary-foreground">
-            MH
-          </span>
-          <span className="font-semibold">ModernHome Admin</span>
+          <Logo size="sm" wordmark="plain" suffix="Admin" />
         </div>
         <nav className="flex-1 space-y-1 p-3">
           {sidebarLinks.map((link) => (

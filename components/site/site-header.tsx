@@ -14,6 +14,7 @@ import { usePathname } from "next/navigation";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/site/user-menu";
+import { Logo } from "@/components/site/logo";
 import { useSessionEmail } from "@/hooks/use-session-email";
 import { cn } from "@/lib/utils";
 
@@ -73,13 +74,7 @@ export function SiteHeader() {
           <PlusMark className="-right-[5px] -bottom-[5px]" />
 
           <div className="flex h-16 items-center justify-between border-y border-border/70 px-4">
-            {/* Logo */}
-            <Link href="/" className="group flex items-center gap-2">
-              <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-sm font-bold text-primary-foreground transition-transform duration-300 ease-[var(--ease-spring)] group-hover:rotate-3 group-hover:scale-105">
-                MH
-              </span>
-              <span className="font-display text-lg tracking-tight">ModernHome</span>
-            </Link>
+            <Logo href="/" priority />
 
             {/* Desktop nav */}
             <nav className="hidden items-center gap-1 md:flex">

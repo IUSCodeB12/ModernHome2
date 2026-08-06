@@ -4,13 +4,19 @@
  */
 import type { ServiceWithQuestions } from "@/lib/quote/types";
 import type { ServiceFaq } from "@/lib/services/content";
+import { BRAND, SITE_ORIGIN } from "@/lib/brand";
+import { BUSINESS } from "@/lib/business";
 
-export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://modern-home2.vercel.app";
+export const SITE_URL = SITE_ORIGIN;
 
-const BUSINESS = {
-  name: "ModernHome",
-  areaServed: "Greater Melbourne",
+/**
+ * This file used to declare its own `BUSINESS` const with the name and service
+ * area hardcoded — a second source of truth that would have drifted from
+ * `lib/business.ts` the moment either changed. Both now come from one place.
+ */
+const BUSINESS_LD = {
+  name: BRAND.name,
+  areaServed: BUSINESS.serviceArea,
   region: "AU",
 } as const;
 
@@ -19,14 +25,14 @@ export function localBusinessLd() {
   return {
     "@context": "https://schema.org",
     "@type": "HomeAndConstructionBusiness",
-    name: BUSINESS.name,
+    name: BUSINESS_LD.name,
     url: SITE_URL,
     image: `${SITE_URL}/opengraph-image`,
-    areaServed: BUSINESS.areaServed,
+    areaServed: BUSINESS_LD.areaServed,
     address: {
       "@type": "PostalAddress",
       addressRegion: "VIC",
-      addressCountry: BUSINESS.region,
+      addressCountry: BUSINESS_LD.region,
     },
     priceRange: "$$",
   };
@@ -41,10 +47,10 @@ export function serviceLd(service: ServiceWithQuestions) {
     name: service.name,
     description:
       service.description ??
-      `Fixed-price ${service.name} in ${BUSINESS.areaServed}, booked online.`,
+      `Fixed-price ${service.name} in ${BUSINESS_LD.areaServed}, booked online.`,
     url: `${SITE_URL}/services/${service.slug}`,
-    areaServed: BUSINESS.areaServed,
-    provider: { "@type": "HomeAndConstructionBusiness", name: BUSINESS.name, url: SITE_URL },
+    areaServed: BUSINESS_LD.areaServed,
+    provider: { "@type": "HomeAndConstructionBusiness", name: BUSINESS_LD.name, url: SITE_URL },
     offers: {
       "@type": "Offer",
       price: price.toFixed(2),

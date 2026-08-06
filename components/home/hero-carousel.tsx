@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { HeroSlide } from "@/lib/home/data";
+import { BRAND } from "@/lib/brand";
 
 const INTERVAL = 6000;
 const SWIPE_THRESHOLD = 40;
@@ -99,7 +100,7 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
           {/* eslint-disable-next-line @next/next/no-img-element -- public bucket URL, no next/image domain config */}
           <img
             src={slide.image_url}
-            alt={slide.headline ?? "Interior install by ModernHome"}
+            alt={slide.headline ?? `Interior install by ${BRAND.name}`}
             className="size-full object-cover motion-safe:animate-[hero-kenburns_14s_ease-out_infinite_alternate]"
             loading={i === 0 ? "eager" : "lazy"}
             fetchPriority={i === 0 ? "high" : "auto"}

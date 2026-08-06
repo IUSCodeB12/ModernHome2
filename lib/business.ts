@@ -21,6 +21,8 @@
  * be charged at all before registration, since that's a tax decision rather
  * than a display one.
  */
+import { BRAND } from "@/lib/brand";
+
 export type BusinessIdentity = {
   /** Public-facing name. Safe to use anywhere. */
   tradingName: string;
@@ -38,7 +40,7 @@ export type BusinessIdentity = {
 };
 
 export const BUSINESS: BusinessIdentity = {
-  tradingName: "ModernHome",
+  tradingName: BRAND.name,
   legalName: null,
   abn: null,
   acn: null,

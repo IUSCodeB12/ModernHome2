@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Fraunces } from "next/font/google";
+import { Lockup } from "@/components/site/logo";
 
 const fraunces = Fraunces({ subsets: ["latin"], axes: ["opsz"] });
 
@@ -8,9 +9,7 @@ export default function NotFound() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#141210] px-4 text-center">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,177,99,0.14),transparent_62%)]" />
       <div className="relative flex flex-col items-center">
-        <span className="flex size-11 items-center justify-center rounded-xl bg-white/95 text-sm font-bold text-neutral-900">
-          MH
-        </span>
+        <Lockup height={104} />
         <p className="mt-8 text-sm font-medium uppercase tracking-[0.2em] text-white/50">
           404
         </p>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
 import { FloatingCta } from "@/components/site/floating-cta";
+import { Logo } from "@/components/site/logo";
 import { BUSINESS } from "@/lib/business";
 
 const footerLinks = [
@@ -38,12 +39,7 @@ export default function SiteLayout({
       <footer className="border-t bg-muted/30">
         <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-14 sm:grid-cols-4">
           <div className="space-y-3 sm:col-span-1">
-            <div className="flex items-center gap-2">
-              <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground">
-                MH
-              </span>
-              <span className="font-semibold tracking-tight">ModernHome</span>
-            </div>
+            <Logo size="sm" wordmark="plain" />
             <p className="text-sm text-muted-foreground">
               Quality home improvement, priced online in minutes.
             </p>

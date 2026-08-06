@@ -1,5 +1,7 @@
 import { formatInTimeZone } from "date-fns-tz";
 import { BUSINESS_TIME_ZONE } from "@/lib/slots";
+import { BRAND } from "@/lib/brand";
+import { BUSINESS } from "@/lib/business";
 
 /**
  * Transactional email via Resend.
@@ -30,7 +32,7 @@ export type SendEmailResult = { ok: boolean; id?: string; skipped?: boolean };
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://modern-home2.vercel.app";
-const FROM = process.env.EMAIL_FROM ?? "ModernHome <onboarding@resend.dev>";
+const FROM = process.env.EMAIL_FROM ?? `${BRAND.name} <onboarding@resend.dev>`;
 
 const aud = (cents: unknown) =>
   typeof cents === "number"
@@ -68,12 +70,12 @@ function body(template: EmailTemplate, d: Record<string, unknown>): string {
 function renderHtml(template: EmailTemplate, data: Record<string, unknown>): string {
   return `<!doctype html><html><body style="margin:0;background:#f5f3ee;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1c1917">
     <div style="max-width:520px;margin:0 auto;padding:32px 24px">
-      <div style="font-size:20px;font-weight:700;letter-spacing:-0.02em">ModernHome</div>
+      <div style="font-size:20px;font-weight:700;letter-spacing:-0.02em">${BRAND.name}</div>
       <div style="background:#fff;border:1px solid #e7e5e4;border-radius:16px;padding:24px;margin-top:16px;line-height:1.5;font-size:15px">
         ${body(template, data)}
         <p style="margin-top:24px"><a href="${SITE_URL}/portal" style="display:inline-block;background:#1c1917;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">Open your portal</a></p>
       </div>
-      <p style="color:#a8a29e;font-size:12px;margin-top:16px">ModernHome · Servicing Greater Melbourne</p>
+      <p style="color:#a8a29e;font-size:12px;margin-top:16px">${BRAND.name} · Servicing ${BUSINESS.serviceArea}</p>
     </div>
   </body></html>`;
 }
