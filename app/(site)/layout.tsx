@@ -33,7 +33,12 @@ export default function SiteLayout({
     <div className="site-theme flex min-h-screen flex-col">
       <SiteHeader />
 
-      <main className="flex-1">{children}</main>
+      {/* `isolate` keeps the ambient layer's negative z-index scoped to main,
+          so it sits behind the page's sections but still above the body fill. */}
+      <main className="relative isolate flex-1">
+        <div aria-hidden className="ambient-ground" />
+        {children}
+      </main>
       <FloatingCta />
 
       <footer className="border-t bg-muted/30">

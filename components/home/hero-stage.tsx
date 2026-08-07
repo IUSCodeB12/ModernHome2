@@ -86,10 +86,24 @@ export function HeroStage({ slides }: { slides: HeroSlide[] }) {
         </div>
       ))}
 
-      {/* Seam gradient — lets the dark panel bleed into the photograph rather
-          than butting against it with a hard edge. */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background via-transparent to-transparent lg:from-background/95 lg:via-background/10" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-background/25" />
+      {/*
+       * Mobile scrim, bottom-weighted. The copy sits in the lower third, so the
+       * scrim only needs to be opaque down there — everything above 80% stays
+       * untouched photograph. The previous treatment washed the whole frame at
+       * ~90%, which is how the one thing the studio is selling ended up looking
+       * like a watermark.
+       */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background from-38% via-background/85 via-62% to-transparent to-88% lg:hidden" />
+
+      {/* Short top guard: the header goes transparent over the hero, so its
+          logo and controls need something to sit on now the photo is at full
+          strength. Only the top 15% — the fold itself stays clean. */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/75 to-transparent to-15% lg:hidden" />
+
+      {/* Desktop seam — lets the panel bleed into the photograph rather than
+          butting against it with a hard edge. */}
+      <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-r from-background/95 via-background/10 to-transparent lg:block" />
+      <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-t from-background/70 via-transparent to-background/25 lg:block" />
     </div>
   );
 }

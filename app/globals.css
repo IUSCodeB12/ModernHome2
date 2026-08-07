@@ -182,6 +182,48 @@
   }
 }
 
+/*
+ * Dark-mode ambience for the public site.
+ *
+ * Every section between the hero and `cta-finale` renders on a transparent
+ * background, so with the lights off they all fell through to one flat fill —
+ * roughly nine thousand unbroken pixels of near-black. The finale looked better
+ * than the rest of the page only because it hardcodes its own warm bloom; its
+ * base `#171513` is actually *less* saturated than `--background`. So the fix
+ * is light, not pigment.
+ *
+ * Anchored to the document rather than the viewport: the pools are placed at
+ * percentages of `main`'s full height, so you scroll *through* warm zones the
+ * way you would past real lamps, and it scales to short pages (legal, gallery)
+ * without retuning. A `position: fixed` layer would instead hang motionless in
+ * front of the scroll — and `background-attachment: fixed` is still a repaint
+ * cost and an iOS Safari liability on exactly the phones this is aimed at.
+ *
+ * The first pool starts at 20% so its upper falloff clears the homepage hero.
+ * The hero paints an opaque `bg-background`, so any glow reaching under it is
+ * clipped, and a hard horizontal step would show at the seam.
+ */
+.ambient-ground {
+  display: none;
+}
+
+.dark .ambient-ground {
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  /* Same amber as the finale's bloom, at a third of the alpha — that one lights
+     a single 484px panel, this has to survive being looked at for a whole page. */
+  background-image:
+    radial-gradient(80% 12% at 20% 20%, rgba(255, 177, 99, 0.1), transparent 68%),
+    radial-gradient(70% 11% at 95% 37%, rgba(255, 168, 88, 0.075), transparent 66%),
+    radial-gradient(85% 13% at 0% 55%, rgba(255, 190, 120, 0.065), transparent 66%),
+    radial-gradient(70% 11% at 88% 73%, rgba(255, 172, 92, 0.075), transparent 66%),
+    radial-gradient(90% 12% at 35% 90%, rgba(255, 182, 105, 0.07), transparent 66%);
+}
+
 @layer utilities {
   /* Smooth, layered elevation on hover — for cards & tiles. */
   .card-lift {

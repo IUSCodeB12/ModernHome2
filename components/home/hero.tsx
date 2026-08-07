@@ -74,15 +74,26 @@ export function Hero({ slides = [] }: { slides?: HeroSlide[] }) {
           <HeroStage slides={slides} />
         </div>
 
-        {/* Content panel */}
-        <div className="relative z-10 flex flex-col justify-center bg-gradient-to-b from-background/92 via-background/[0.88] to-background/92 px-6 py-16 sm:px-10 lg:order-1 lg:bg-none lg:px-14 lg:py-20 xl:px-20">
-          <p className="flex items-center gap-4 text-[0.7rem] font-medium uppercase tracking-[0.22em] text-brand">
+        {/* Content panel — bottom-anchored below lg so the photograph gets the
+            top of the fold and the copy lands on the dense end of the stage's
+            scrim. Centred in its own column from lg, as before. */}
+        <div className="relative z-10 flex flex-col justify-end px-6 pb-24 pt-16 sm:px-10 lg:order-1 lg:justify-center lg:pb-20 lg:pt-20 lg:px-14 xl:px-20">
+          {/*
+           * The halo is the mobile safety net. Below lg this copy sits directly
+           * on an editable photograph, and gold-on-gold (an eyebrow over a brass
+           * pendant) or dark-on-dark is one slide upload away. A glow in the
+           * *background* token reads correctly in both themes — a pale halo
+           * around dark text with the lights on, a dark one around pale text
+           * with them off — so it holds whatever gets curated. Off from lg,
+           * where the panel has its own solid background.
+           */}
+          <p className="flex items-center gap-4 text-[0.7rem] font-medium uppercase tracking-[0.22em] text-brand [text-shadow:0_0_16px_var(--background),0_0_5px_var(--background)] lg:[text-shadow:none]">
             <span aria-hidden className="h-px w-10 bg-brand/70" />
             Luxury interior design
           </p>
 
           <h1
-            className="mt-7 max-w-[13ch] text-balance text-[2.75rem] leading-[1.04] tracking-[-0.02em] sm:text-6xl xl:text-[4.25rem]"
+            className="mt-7 max-w-[13ch] text-balance text-[2.75rem] leading-[1.04] tracking-[-0.02em] [text-shadow:0_1px_28px_var(--background)] sm:text-6xl lg:[text-shadow:none] xl:text-[4.25rem]"
             style={{ fontFamily: "var(--font-fraunces), Georgia, serif", fontWeight: 400 }}
           >
             Crafted spaces.
@@ -95,7 +106,11 @@ export function Hero({ slides = [] }: { slides?: HeroSlide[] }) {
             and elevate everyday living.
           </p>
 
-          <ul className="mt-10 grid max-w-lg grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
+          {/* Desktop only. Six labels cost ~140px of a 748px mobile fold to
+              restate a menu that `services-grid.tsx` already renders further
+              down the page — the hero's job on a phone is one promise and one
+              action. */}
+          <ul className="mt-10 hidden max-w-lg grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid lg:grid-cols-2 xl:grid-cols-3">
             {FEATURES.map((feature) => (
               <li key={feature.label} className="flex items-center gap-2.5">
                 <feature.icon className="size-[1.15rem] shrink-0 text-brand" strokeWidth={1.5} />
@@ -104,25 +119,36 @@ export function Hero({ slides = [] }: { slides?: HeroSlide[] }) {
             ))}
           </ul>
 
-          <div className="mt-11 flex flex-wrap items-center gap-4">
+          {/* One button, one link. Two stacked outlined boxes on a phone is
+              where this stops reading as a studio and starts reading as a SaaS
+              signup. The secondary keeps a 44px target despite being text. */}
+          <div className="mt-9 flex flex-col items-start gap-4 sm:mt-11 sm:flex-row sm:flex-wrap sm:items-center">
             <Link
               href="/quote"
-              className="group inline-flex h-14 items-center gap-3 rounded-sm bg-brand px-8 text-[0.95rem] font-medium text-brand-foreground transition-colors hover:bg-brand/90"
+              className="group inline-flex h-14 w-full items-center justify-center gap-3 rounded-sm bg-brand px-8 text-[0.95rem] font-medium text-brand-foreground transition-colors hover:bg-brand/90 sm:w-auto sm:justify-start"
             >
               Get free quote
               <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
             </Link>
             <Link
               href="/gallery"
-              className="inline-flex h-14 items-center rounded-sm border border-foreground/25 px-8 text-[0.95rem] font-medium text-foreground transition-colors hover:border-foreground/50 hover:bg-foreground/5"
+              className="inline-flex h-11 items-center text-[0.95rem] font-medium text-foreground underline decoration-foreground/30 underline-offset-[7px] transition-colors hover:decoration-foreground sm:h-14 sm:rounded-sm sm:border sm:border-foreground/25 sm:px-8 sm:no-underline sm:hover:border-foreground/50 sm:hover:bg-foreground/5"
             >
               View projects
             </Link>
           </div>
 
-          <ul className="mt-14 grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
+          {/* A wrapping inline row below lg, the original 4-up grid from sm.
+              No separator characters: the row wraps to two lines at 375px and
+              a `::before` dot has no way to know it has become the first item
+              on a line, so it strands one at the start of the second row. The
+              leading icons already do the separating. */}
+          <ul className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2.5 sm:mt-14 sm:grid sm:grid-cols-4 sm:gap-x-6 sm:gap-y-6">
             {TRUST.map((item) => (
-              <li key={item.label} className="flex flex-col items-center gap-2 text-center sm:items-start sm:text-left">
+              <li
+                key={item.label}
+                className="flex items-center gap-1.5 sm:flex-col sm:items-start sm:gap-2 sm:text-left"
+              >
                 {item.stars ? (
                   <span className="flex gap-0.5" aria-hidden>
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -132,7 +158,7 @@ export function Hero({ slides = [] }: { slides?: HeroSlide[] }) {
                 ) : (
                   <item.icon className="size-[1.15rem] text-brand" strokeWidth={1.5} />
                 )}
-                <span className="text-[0.72rem] leading-tight text-muted-foreground">
+                <span className="text-[0.68rem] leading-tight text-muted-foreground sm:text-[0.72rem]">
                   {item.label}
                 </span>
               </li>

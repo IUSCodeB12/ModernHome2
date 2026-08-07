@@ -3,9 +3,17 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/home/reveal";
 
+/*
+ * The hardcoded fill is what makes this a dark band interrupting a light page —
+ * worth keeping with the lights on. With them off the page is already this
+ * dark, so the fill stopped reading as a band and started reading as a seam: it
+ * clips the ambient ground (see `.ambient-ground` in globals.css) at its top
+ * edge and leaves a flat step against the FAQ above. Transparent in dark mode
+ * lets the ground run through; the bloom below still does the local lighting.
+ */
 export function CtaFinale() {
   return (
-    <section className="relative overflow-hidden bg-[#171513]">
+    <section className="relative overflow-hidden bg-[#171513] dark:bg-transparent">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(255,177,99,0.18),transparent_65%)]" />
       <div className="relative mx-auto max-w-3xl px-4 py-24 text-center">
         <Reveal>
