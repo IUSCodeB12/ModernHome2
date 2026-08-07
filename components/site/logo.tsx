@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
  * next/og and reads `BRAND` directly.
  */
 type Size = "sm" | "md" | "lg";
-type Tone = "default" | "inverse";
+type Tone = "default" | "onHero";
 type Wordmark = "none" | "display" | "plain";
 
 /** Mark heights. Width follows the artwork's 391×305 aspect. */
@@ -38,7 +38,8 @@ const WORDMARK: Record<Exclude<Wordmark, "none">, string> = {
 
 const TONE: Record<Tone, string> = {
   default: "text-foreground",
-  inverse: "text-white",
+  /** Over the hero, which follows the light switch — so this must too. */
+  onHero: "text-foreground dark:text-white",
 };
 
 /**

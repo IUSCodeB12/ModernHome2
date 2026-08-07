@@ -15,6 +15,7 @@ import { ArrowRight, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/site/user-menu";
 import { Logo } from "@/components/site/logo";
+import { LightSwitch } from "@/components/site/light-switch";
 import { useSessionEmail } from "@/hooks/use-session-email";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +29,30 @@ const navLinks = [
   { href: "/gallery", label: "Gallery" },
   { href: "/portal", label: "My Bookings" },
 ];
+
+/**
+ * The fixture. A hairline of light across the top of the header, brightest at
+ * centre, with a soft wash spilling down over the page beneath it — so the
+ * light in "lights on" has a visible source rather than the palette simply
+ * changing. Hidden entirely in the dark, and inert to pointers.
+ */
+function LightBar() {
+  return (
+    /*
+     * Always mounted, revealed by opacity rather than `display`, so it can
+     * transition — and delayed ~180ms behind the switch so the sequence reads
+     * lamp first, then fixture. Toggling `display` made both snap at once,
+     * which lost the cause and effect the whole idea depends on.
+     */
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-x-0 top-0 z-10 opacity-100 transition-opacity duration-[900ms] ease-[var(--ease-out-soft)] delay-[180ms] dark:opacity-0 dark:delay-0 dark:duration-300 motion-reduce:transition-none"
+    >
+      <div className="h-px w-full bg-[linear-gradient(90deg,transparent,var(--brand)_35%,oklch(0.97_0.06_92)_50%,var(--brand)_65%,transparent)] opacity-80" />
+      <div className="mx-auto h-24 w-[70%] bg-[radial-gradient(ellipse_at_top,oklch(0.92_0.08_88/0.28),transparent_70%)]" />
+    </div>
+  );
+}
 
 /** Small "+" mark that sits on the grid rails' corners (Radiant-style). */
 function PlusMark({ className }: { className?: string }) {
@@ -45,15 +70,32 @@ export function SiteHeader() {
   const email = useSessionEmail();
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
+  /**
+   * True while the header sits over the homepage's dark hero. The hero fills
+   * the viewport below the header, so leaving the ivory glass in place put a
+   * white bar across the top of a near-black image.
+   */
+  const [overHero, setOverHero] = useState(false);
   const [open, setOpen] = useState(false);
   const [everOpened, setEverOpened] = useState(false);
 
+  const onHome = pathname === "/";
+
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
+    const onScroll = () => {
+      setScrolled(window.scrollY > 8);
+      // Hand back to the glass treatment before the hero has fully left, so
+      // the swap happens against dark pixels rather than mid-air.
+      setOverHero(onHome && window.scrollY < window.innerHeight * 0.72);
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+    window.addEventListener("resize", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [onHome]);
 
   // Close the mobile menu on navigation.
   useEffect(() => setOpen(false), [pathname]);
@@ -61,20 +103,25 @@ export function SiteHeader() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 bg-background/70 backdrop-blur-md backdrop-saturate-150 transition-shadow duration-300 supports-[backdrop-filter]:bg-background/55",
-        scrolled ? "shadow-[var(--shadow-elev-1)]" : ""
+        "sticky top-0 z-50 transition-[background-color,box-shadow,color] duration-500",
+        overHero
+          ? "bg-transparent"
+          : "bg-background/70 backdrop-blur-md backdrop-saturate-150 supports-[backdrop-filter]:bg-background/55",
+        scrolled && !overHero ? "shadow-[var(--shadow-elev-1)]" : ""
       )}
     >
+      <LightBar />
+
       <div className="mx-auto w-full max-w-6xl px-4">
         {/* Editorial grid rails + corner plus marks */}
-        <div className="relative border-x border-border/70">
+        <div className={cn("relative border-x", overHero ? "border-foreground/12 dark:border-white/15" : "border-border/70")}>
           <PlusMark className="-left-[5px] -top-[5px]" />
           <PlusMark className="-right-[5px] -top-[5px]" />
           <PlusMark className="-left-[5px] -bottom-[5px]" />
           <PlusMark className="-right-[5px] -bottom-[5px]" />
 
-          <div className="flex h-16 items-center justify-between border-y border-border/70 px-4">
-            <Logo href="/" priority />
+          <div className={cn("flex h-16 items-center justify-between border-y px-4", overHero ? "border-foreground/12 dark:border-white/15" : "border-border/70")}>
+            <Logo href="/" priority tone={overHero ? "onHero" : "default"} />
 
             {/* Desktop nav */}
             <nav className="hidden items-center gap-1 md:flex">
@@ -87,9 +134,13 @@ export function SiteHeader() {
                     href={link.href}
                     className={cn(
                       "relative rounded-full px-3 py-2 text-sm font-medium transition-colors duration-200",
-                      active
-                        ? "text-foreground"
-                        : "text-muted-foreground hover:text-foreground"
+                      overHero
+                        ? active
+                          ? "text-foreground dark:text-white"
+                          : "text-muted-foreground hover:text-foreground dark:text-white/65 dark:hover:text-white"
+                        : active
+                          ? "text-foreground"
+                          : "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     {link.label}
@@ -107,17 +158,29 @@ export function SiteHeader() {
               {email === null && (
                 <Link
                   href="/login"
-                  className="rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  className={cn("rounded-full px-3 py-2 text-sm font-medium transition-colors", overHero ? "text-muted-foreground hover:text-foreground dark:text-white/65 dark:hover:text-white" : "text-muted-foreground hover:text-foreground")}
                 >
                   Sign in
                 </Link>
               )}
-              <Button asChild size="sm" className="ml-1 rounded-full">
+              <Button
+                asChild
+                size="sm"
+                variant={overHero ? "outline" : "default"}
+                className={cn(
+                  "ml-1 rounded-full",
+                  // Over the hero the solid dark pill disappears into the
+                  // photograph, so it becomes an outline in white.
+                  overHero &&
+                    "border-foreground/30 bg-transparent text-foreground hover:bg-foreground/5 hover:text-foreground dark:border-white/40 dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
+                )}
+              >
                 <Link href="/quote">
                   Get a quote
                   <ArrowRight />
                 </Link>
               </Button>
+              <LightSwitch className="ml-3" />
               {email && (
                 <div className="ml-2">
                   <UserMenu email={email} />
@@ -125,8 +188,10 @@ export function SiteHeader() {
               )}
             </nav>
 
-            {/* Mobile toggle */}
-            <button
+            {/* Mobile controls */}
+            <div className="flex items-center gap-2 md:hidden">
+              <LightSwitch />
+              <button
               type="button"
               onClick={() => {
                 setEverOpened(true);
@@ -135,10 +200,17 @@ export function SiteHeader() {
               aria-expanded={open}
               aria-controls="mobile-nav"
               aria-label={open ? "Close menu" : "Open menu"}
-              className="flex size-10 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-accent md:hidden"
+              className={cn("flex size-10 items-center justify-center rounded-lg transition-colors md:hidden", overHero ? "text-foreground hover:bg-foreground/10 dark:text-white dark:hover:bg-white/10" : "text-foreground hover:bg-accent")}
             >
-              {open ? <X className="size-5" /> : <Menu className="size-5" />}
-            </button>
+                {/* 1.5 to match the lamp and the feature icons — lucide defaults to 2,
+                    which left the menu heavier than everything around it. */}
+                {open ? (
+                  <X className="size-5" strokeWidth={1.5} />
+                ) : (
+                  <Menu className="size-5" strokeWidth={1.5} />
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -6,8 +6,13 @@
 :root {
   --radius: 0.75rem;
   /* Warm brand accent — echoes the LED glow in the 3D room. */
-  --brand: oklch(0.72 0.15 55);
-  --brand-foreground: oklch(0.985 0 0);
+  /* Champagne gold, matched to the AS55 mark. Was oklch(0.72 0.15 55) —
+     a saturated orange tuned for the old ModernHome brass, which clashed
+     with the new logo everywhere the two appeared together. */
+  --brand: oklch(0.755 0.095 82);
+  /* Dark walnut, not white. The retuned brand is a light champagne gold
+     (L 0.755) — near-white text on it fails contrast badly. */
+  --brand-foreground: oklch(0.21 0.014 55);
   /* Motion + elevation primitives */
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -49,37 +54,51 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /*
+   * Lights off — the same room after dark, not a greyscale inversion.
+   *
+   * Every value carries chroma in the 55–85 hue band, the warm walnut/brass
+   * family the light theme uses. The stock shadcn dark palette this replaced
+   * was `oklch(0.145 0 0)` throughout — zero chroma, dead neutral — which read
+   * as a generic dashboard and fought the champagne-gold mark.
+   */
+  --background: oklch(0.165 0.008 58);
+  --foreground: oklch(0.955 0.006 84);
+  --card: oklch(0.208 0.009 58);
+  --card-foreground: oklch(0.955 0.006 84);
+  --popover: oklch(0.208 0.009 58);
+  --popover-foreground: oklch(0.955 0.006 84);
+  /* Inverted for buttons: a warm bone fill with dark walnut text. */
+  --primary: oklch(0.945 0.007 84);
+  --primary-foreground: oklch(0.205 0.012 55);
+  --secondary: oklch(0.262 0.010 60);
+  --secondary-foreground: oklch(0.955 0.006 84);
+  --muted: oklch(0.248 0.009 60);
+  --muted-foreground: oklch(0.715 0.014 68);
+  --accent: oklch(0.275 0.013 66);
+  --accent-foreground: oklch(0.955 0.006 84);
+  --destructive: oklch(0.68 0.19 25);
+  /* Warm hairlines — a neutral white border reads blue against this ground. */
+  --border: oklch(0.86 0.03 74 / 14%);
+  --input: oklch(0.86 0.03 74 / 20%);
+  --ring: oklch(0.62 0.05 70);
+  --chart-1: oklch(0.72 0.11 80);
+  --chart-2: oklch(0.66 0.09 55);
+  --chart-3: oklch(0.58 0.07 100);
+  --chart-4: oklch(0.50 0.06 40);
+  --chart-5: oklch(0.78 0.10 90);
+  --sidebar: oklch(0.195 0.009 58);
+  --sidebar-foreground: oklch(0.955 0.006 84);
+  --sidebar-primary: oklch(0.80 0.10 82);
+  --sidebar-primary-foreground: oklch(0.20 0.012 55);
+  --sidebar-accent: oklch(0.262 0.010 60);
+  --sidebar-accent-foreground: oklch(0.955 0.006 84);
+  --sidebar-border: oklch(0.86 0.03 74 / 14%);
+  --sidebar-ring: oklch(0.62 0.05 70);
+
+  /* The mark glows a touch brighter with the lights off. */
+  --brand: oklch(0.80 0.10 84);
+  --brand-foreground: oklch(0.19 0.012 55);
 }
 
 @theme inline {
@@ -268,6 +287,30 @@
 
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee {
+    animation: none;
+  }
+}
+
+/* Hero stage — slow cinematic push on the active image. 100% → 106% over the
+   hold, deliberately slower than the cross-fade so the movement is felt rather
+   than watched. Paired with the reduced-motion guard below. */
+@keyframes hero-pan {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.06);
+  }
+}
+
+.animate-hero-pan {
+  animation: hero-pan 14s ease-out forwards;
+  transform-origin: 55% 45%;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-hero-pan {
     animation: none;
   }
 }

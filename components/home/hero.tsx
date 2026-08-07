@@ -1,71 +1,157 @@
 import Link from "next/link";
-import { ArrowRight, ShieldCheck, Star } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { HeroCarousel } from "@/components/home/hero-carousel";
+import {
+  ArrowRight,
+  BadgeCheck,
+  Flame,
+  Lightbulb,
+  PanelsTopLeft,
+  Ruler,
+  ShieldCheck,
+  Sofa,
+  Star,
+  Tv,
+  UserRound,
+} from "lucide-react";
+import { HeroStage } from "@/components/home/hero-stage";
 import type { HeroSlide } from "@/lib/home/data";
 
-/** Warm gradient shown until slides are curated (LCP-friendly, no image). */
-function HeroPoster() {
-  return (
-    <div className="absolute inset-0 bg-[#1a1714]">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_60%_35%,rgba(255,177,99,0.18),transparent_60%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_25%_15%,rgba(201,162,75,0.12),transparent_55%)]" />
-    </div>
-  );
-}
+/**
+ * Split-screen cinematic hero: content panel left, the work right.
+ *
+ * Replaces an editorial hero that sat inside the page container with heavy
+ * vertical padding, so the fold opened with whitespace and the photograph read
+ * as a slide in a gallery. This one goes edge to edge, fills the viewport
+ * below the header, and drops every control — see `hero-stage.tsx` for why.
+ *
+ * Follows the light switch. Everything here reads from tokens rather than the
+ * hardcoded near-black it was built with, so turning the lights on brightens
+ * the fold too — otherwise the one screen everybody sees would be the one
+ * screen the switch didn't touch.
+ */
 
 /**
- * Editorial split hero: headline and CTAs on cream, curated photography in a
- * framed panel. Server-rendered — only the carousel itself is a client island,
- * so nothing blocks the LCP text.
+ * Marketing copy, not the bookable catalogue.
+ *
+ * NOTE: `Electric Fireplaces`, `Bespoke Joinery` and `Premium Fit-outs` do not
+ * exist as services in the quote wizard — someone who arrives for a fireplace
+ * reaches a wizard that can't quote one. Either add the services or change
+ * these labels; don't leave the hero promising work the funnel can't take.
  */
+const FEATURES = [
+  { icon: Tv, label: "TV Feature Walls" },
+  { icon: Flame, label: "Electric Fireplaces" },
+  { icon: PanelsTopLeft, label: "Custom Cabinetry" },
+  { icon: Lightbulb, label: "LED Lighting" },
+  { icon: Ruler, label: "Bespoke Joinery" },
+  { icon: Sofa, label: "Premium Fit-outs" },
+] as const;
+
+/**
+ * NOTE: "100+ Happy Clients" has no data source behind it, and "5 Year
+ * Warranty" contradicts /legal/warranty, where the period is still marked
+ * to-be-confirmed. Both are claims a customer can hold you to.
+ */
+type TrustItem = {
+  icon: typeof Star;
+  label: string;
+  /** Renders five filled stars in place of the icon. */
+  stars?: boolean;
+};
+
+const TRUST: TrustItem[] = [
+  { icon: Star, label: "100+ Happy Clients", stars: true },
+  { icon: ShieldCheck, label: "5 Year Warranty" },
+  { icon: BadgeCheck, label: "Australian Made" },
+  { icon: UserRound, label: "Free Consultation" },
+];
+
 export function Hero({ slides = [] }: { slides?: HeroSlide[] }) {
   return (
-    <section className="relative w-full overflow-hidden">
-      <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-4 py-16 sm:py-20 md:grid-cols-2 md:gap-8 lg:py-24">
-        {/* Editorial column */}
-        <div className="order-2 md:order-1">
-          <p className="w-fit text-[0.7rem] font-medium uppercase tracking-[0.16em] text-brand">
-            Premium installs · Melbourne
-          </p>
-          <h1 className="mt-4 font-serif text-5xl leading-[0.98] tracking-tight text-foreground sm:text-6xl lg:text-7xl">
-            Your home,
-            <br />
-            done properly.
-          </h1>
-          <p className="mt-5 max-w-md text-base text-muted-foreground sm:text-lg">
-            TV mounting, cabinets, LED lighting and heating — fixed-price,
-            fully insured, and booked online in minutes.
-          </p>
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Button asChild size="lg">
-              <Link href="/quote">
-                Get an instant quote <ArrowRight />
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link href="/services">Browse services</Link>
-            </Button>
-          </div>
-          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5">
-              <Star className="size-4 fill-brand text-brand" /> 4.9 · 200+ jobs
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <ShieldCheck className="size-4 text-brand" /> Licensed &amp; insured
-            </span>
-            <span>No callout fees</span>
-          </div>
+    <section className="relative isolate w-full bg-background text-foreground">
+      <div className="grid min-h-[calc(100svh-4rem)] lg:grid-cols-[minmax(0,42fr)_minmax(0,58fr)]">
+        {/* Stage — behind the panel on mobile, beside it from lg. */}
+        <div className="absolute inset-0 lg:relative lg:order-2 lg:inset-auto">
+          <HeroStage slides={slides} />
         </div>
 
-        {/* Photo panel */}
-        <div className="order-1 md:order-2">
-          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border bg-[#1a1714] shadow-elev-3 md:aspect-[5/6] lg:aspect-[4/3]">
-            {slides.length > 0 ? <HeroCarousel slides={slides} /> : <HeroPoster />}
-            {/* Brass hairline accent */}
-            <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-[#c9a24b]/20" />
+        {/* Content panel */}
+        <div className="relative z-10 flex flex-col justify-center bg-gradient-to-b from-background/92 via-background/[0.88] to-background/92 px-6 py-16 sm:px-10 lg:order-1 lg:bg-none lg:px-14 lg:py-20 xl:px-20">
+          <p className="flex items-center gap-4 text-[0.7rem] font-medium uppercase tracking-[0.22em] text-brand">
+            <span aria-hidden className="h-px w-10 bg-brand/70" />
+            Luxury interior design
+          </p>
+
+          <h1
+            className="mt-7 max-w-[13ch] text-balance text-[2.75rem] leading-[1.04] tracking-[-0.02em] sm:text-6xl xl:text-[4.25rem]"
+            style={{ fontFamily: "var(--font-fraunces), Georgia, serif", fontWeight: 400 }}
+          >
+            Crafted spaces.
+            <br />
+            Timeless living.
+          </h1>
+
+          <p className="mt-6 max-w-md text-base leading-relaxed text-muted-foreground">
+            We design and build premium interiors that reflect your lifestyle
+            and elevate everyday living.
+          </p>
+
+          <ul className="mt-10 grid max-w-lg grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
+            {FEATURES.map((feature) => (
+              <li key={feature.label} className="flex items-center gap-2.5">
+                <feature.icon className="size-[1.15rem] shrink-0 text-brand" strokeWidth={1.5} />
+                <span className="text-[0.9rem] text-foreground/85">{feature.label}</span>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-11 flex flex-wrap items-center gap-4">
+            <Link
+              href="/quote"
+              className="group inline-flex h-14 items-center gap-3 rounded-sm bg-brand px-8 text-[0.95rem] font-medium text-brand-foreground transition-colors hover:bg-brand/90"
+            >
+              Get free quote
+              <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
+            </Link>
+            <Link
+              href="/gallery"
+              className="inline-flex h-14 items-center rounded-sm border border-foreground/25 px-8 text-[0.95rem] font-medium text-foreground transition-colors hover:border-foreground/50 hover:bg-foreground/5"
+            >
+              View projects
+            </Link>
           </div>
+
+          <ul className="mt-14 grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
+            {TRUST.map((item) => (
+              <li key={item.label} className="flex flex-col items-center gap-2 text-center sm:items-start sm:text-left">
+                {item.stars ? (
+                  <span className="flex gap-0.5" aria-hidden>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} className="size-3.5 fill-brand text-brand" />
+                    ))}
+                  </span>
+                ) : (
+                  <item.icon className="size-[1.15rem] text-brand" strokeWidth={1.5} />
+                )}
+                <span className="text-[0.72rem] leading-tight text-muted-foreground">
+                  {item.label}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
+      </div>
+
+      {/* Scroll cue — sits over the photograph on desktop, centred on mobile. */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-7 z-10 flex flex-col items-center gap-2.5 lg:left-auto lg:right-0 lg:w-[58%]">
+        <span
+          aria-hidden
+          className="flex h-7 w-[1.1rem] items-start justify-center rounded-full border border-foreground/35 pt-1.5 lg:border-white/35"
+        >
+          <span className="h-1.5 w-px animate-bounce bg-foreground/70 lg:bg-white/70" />
+        </span>
+        <span className="text-[0.62rem] font-medium uppercase tracking-[0.2em] text-foreground/50 lg:text-white/50">
+          Scroll to explore
+        </span>
       </div>
     </section>
   );
