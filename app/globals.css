@@ -224,6 +224,128 @@
     radial-gradient(90% 12% at 35% 90%, rgba(255, 182, 105, 0.07), transparent 66%);
 }
 
+/*
+ * Hero pull-to-reveal. The gesture lives in `components/home/hero-pull.tsx`;
+ * this is every visual response to it, derived from the one number it writes.
+ *
+ * `--hero-pull` runs 0 → 1. At 0 every rule below resolves to its identity
+ * (opacity 1, no translate, scale 1), so this is inert on desktop and on any
+ * device that never fires a touch — no need to gate it behind a media query.
+ */
+.hero-pull {
+  --hero-pull: 0;
+}
+
+/* Scrim, copy and scroll cue all clear off the photograph together. */
+.hero-pull-scrim {
+  opacity: calc(1 - var(--hero-pull));
+}
+
+.hero-pull-copy {
+  opacity: calc(1 - var(--hero-pull));
+  transform: translateY(calc(var(--hero-pull) * 28px));
+}
+
+/*
+ * The photograph pulls *back*, not forward.
+ *
+ * The hero box is 375×748 — aspect 0.50 — and the slides are 16:9. `object-fit:
+ * cover` fills by height, so a 1376px-wide room renders 1339px wide inside a
+ * 375px window: about 28% of the photograph, dead centre. Full-bleed that reads
+ * as intended drama, but at full pull, with the scrim gone, it is just a slice
+ * of wall.
+ *
+ * So the pull contracts the frame toward the photo's own aspect. Equal top and
+ * bottom insets keep it centred without a transform — `animate-hero-pan` owns
+ * the image's transform for its 14s scale, and a second one here would clobber
+ * it mid-animation. At full pull the box is ~261px tall and about 78% of the
+ * room is visible: a landscape plate on the page ground rather than wallpaper.
+ *
+ * Height is a layout property, so this is the one part of the gesture that is
+ * not purely composited. It is confined to a single absolutely-positioned <img>
+ * with no siblings to reflow, which keeps the cost to one element per frame.
+ */
+.hero-pull-photo {
+  position: absolute;
+  /*
+   * Width is stated outright rather than left to a `left`/`right` pair. An
+   * <img> is a replaced element, so `width: auto` resolves to its intrinsic
+   * width and `right` is dropped as over-constrained — the inset then only
+   * shoved the photo sideways instead of narrowing it.
+   */
+  width: calc(100% - var(--hero-pull) * 36px);
+  /* Side margins so it reads as a print laid on the page rather than a band
+     bleeding off both edges — without them the rounded corners have nothing to
+     be corners of. */
+  left: calc(var(--hero-pull) * 18px);
+  /* Sits above centre: the caption below it is part of the composition, so
+     splitting the space evenly leaves the pair looking bottom-heavy. */
+  top: calc(var(--hero-pull) * 23svh);
+  height: calc(100% - var(--hero-pull) * 60svh);
+  border-radius: calc(var(--hero-pull) * 14px);
+  /* Every term scales from zero, so at rest there is no shadow to paint. */
+  box-shadow: 0 calc(var(--hero-pull) * 26px) calc(var(--hero-pull) * 52px)
+    rgba(0, 0, 0, calc(var(--hero-pull) * 0.22));
+}
+
+/* The slide's own name, which until now was only ever alt text. Gives the
+   gesture something to arrive at instead of bare photograph. */
+.hero-pull-caption {
+  opacity: var(--hero-pull);
+}
+
+/*
+ * Only while returning. During the drag the copy must track the finger exactly,
+ * so any transition would read as lag; on release the same properties get one.
+ */
+.hero-pull.is-releasing .hero-pull-scrim,
+.hero-pull.is-releasing .hero-pull-copy,
+.hero-pull.is-releasing .hero-pull-frame {
+  transition:
+    opacity 520ms var(--ease-out-soft),
+    transform 520ms var(--ease-out-soft);
+}
+
+/*
+ * Site header reveal. The intent logic lives in `hooks/use-header-reveal.ts`;
+ * this is only the mechanics.
+ *
+ * One duration in both directions. The first pass retreated in 260ms and
+ * returned in 340ms, which reads nicely on paper but not in the hand: reverse
+ * direction mid-slide and the in-flight transition swaps timing under itself,
+ * so the bar visibly changes pace partway. Reversal is the common case for this
+ * control, so it is the one that has to be smooth. The colour transitions keep
+ * the 500ms the light switch needs.
+ *
+ * `will-change` promotes it to its own compositor layer. It carries a
+ * `backdrop-filter`, and moving a backdrop-filtered element re-rasterises what
+ * is behind it every frame unless it is already layer-promoted.
+ */
+.header-reveal {
+  will-change: transform;
+  transition:
+    background-color 500ms,
+    box-shadow 500ms,
+    color 500ms,
+    transform 300ms var(--ease-out-soft);
+}
+
+.header-reveal.is-tucked {
+  transform: translateY(-100%);
+}
+
+/* A keyboard user who has tabbed into the nav must never have it slide out
+   from under them, whatever the page is doing. */
+.header-reveal.is-tucked:focus-within {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-reveal {
+    transition: none;
+  }
+}
+
 @layer utilities {
   /* Smooth, layered elevation on hover — for cards & tiles. */
   .card-lift {

@@ -75,7 +75,7 @@ export function HeroStage({ slides }: { slides: HeroSlide[] }) {
             src={slide.image_url}
             alt={slide.headline ?? ""}
             className={cn(
-              "size-full object-cover transition-[filter] duration-700",
+              "hero-pull-photo size-full object-cover transition-[filter] duration-700",
               // Lights on: lift the room rather than swap the photograph.
               "brightness-[1.09] saturate-[1.04] dark:brightness-100 dark:saturate-100",
               // 100% → 106% over the hold, so movement is felt but not seen.
@@ -93,12 +93,26 @@ export function HeroStage({ slides }: { slides: HeroSlide[] }) {
        * ~90%, which is how the one thing the studio is selling ended up looking
        * like a watermark.
        */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background from-38% via-background/85 via-62% to-transparent to-88% lg:hidden" />
+      <div className="hero-pull-scrim pointer-events-none absolute inset-0 bg-gradient-to-t from-background from-38% via-background/85 via-62% to-transparent to-88% lg:hidden" />
 
       {/* Short top guard: the header goes transparent over the hero, so its
           logo and controls need something to sit on now the photo is at full
           strength. Only the top 15% — the fold itself stays clean. */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/75 to-transparent to-15% lg:hidden" />
+      <div className="hero-pull-scrim pointer-events-none absolute inset-0 bg-gradient-to-b from-background/75 to-transparent to-15% lg:hidden" />
+
+      {/*
+       * Revealed only by the pull, and only below lg. Deliberately a caption
+       * and not a counter or dots — the note at the top of this file still
+       * holds, controls would make the hero read as a gallery. This just names
+       * what you pulled back to look at.
+       */}
+      {slides[index].headline && (
+        <div className="hero-pull-caption pointer-events-none absolute inset-x-0 bottom-[30svh] px-8 text-center lg:hidden">
+          <span className="text-[0.7rem] font-medium uppercase tracking-[0.22em] text-foreground/60">
+            {slides[index].headline}
+          </span>
+        </div>
+      )}
 
       {/* Desktop seam — lets the panel bleed into the photograph rather than
           butting against it with a hard edge. */}

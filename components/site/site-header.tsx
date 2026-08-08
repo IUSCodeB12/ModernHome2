@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/site/user-menu";
 import { Logo } from "@/components/site/logo";
 import { LightSwitch } from "@/components/site/light-switch";
+import { useHeaderReveal } from "@/hooks/use-header-reveal";
 import { useSessionEmail } from "@/hooks/use-session-email";
 import { cn } from "@/lib/utils";
 
@@ -81,6 +82,21 @@ export function SiteHeader() {
 
   const onHome = pathname === "/";
 
+  /*
+   * Pinned only by the open mobile menu, whose close button lives in here.
+   *
+   * The hero is handled as a threshold instead, at 0.78 rather than the 0.72
+   * `overHero` uses. Deliberately past it: the header must never begin tucking
+   * while it is still transparent, and leaving a gap between the two boundaries
+   * means neither can trigger the other. Feeding `overHero` in as a pin is what
+   * made the homepage flap — the flag toggles as you scroll across it, and a
+   * toggling pin resets the whole mechanism.
+   */
+  const hidden = useHeaderReveal({
+    pinned: open,
+    armAt: onHome ? () => window.innerHeight * 0.78 : undefined,
+  });
+
   useEffect(() => {
     const onScroll = () => {
       setScrolled(window.scrollY > 8);
@@ -103,7 +119,8 @@ export function SiteHeader() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 transition-[background-color,box-shadow,color] duration-500",
+        "header-reveal sticky top-0 z-50",
+        hidden && "is-tucked",
         overHero
           ? "bg-transparent"
           : "bg-background/70 backdrop-blur-md backdrop-saturate-150 supports-[backdrop-filter]:bg-background/55",

@@ -12,6 +12,7 @@ import {
   Tv,
   UserRound,
 } from "lucide-react";
+import { HeroPull } from "@/components/home/hero-pull";
 import { HeroStage } from "@/components/home/hero-stage";
 import type { HeroSlide } from "@/lib/home/data";
 
@@ -68,6 +69,7 @@ const TRUST: TrustItem[] = [
 export function Hero({ slides = [] }: { slides?: HeroSlide[] }) {
   return (
     <section className="relative isolate w-full bg-background text-foreground">
+      <HeroPull>
       <div className="grid min-h-[calc(100svh-4rem)] lg:grid-cols-[minmax(0,42fr)_minmax(0,58fr)]">
         {/* Stage — behind the panel on mobile, beside it from lg. */}
         <div className="absolute inset-0 lg:relative lg:order-2 lg:inset-auto">
@@ -77,7 +79,7 @@ export function Hero({ slides = [] }: { slides?: HeroSlide[] }) {
         {/* Content panel — bottom-anchored below lg so the photograph gets the
             top of the fold and the copy lands on the dense end of the stage's
             scrim. Centred in its own column from lg, as before. */}
-        <div className="relative z-10 flex flex-col justify-end px-6 pb-24 pt-16 sm:px-10 lg:order-1 lg:justify-center lg:pb-20 lg:pt-20 lg:px-14 xl:px-20">
+        <div className="hero-pull-copy relative z-10 flex flex-col justify-end px-6 pb-24 pt-16 sm:px-10 lg:order-1 lg:justify-center lg:pb-20 lg:pt-20 lg:px-14 xl:px-20">
           {/*
            * The halo is the mobile safety net. Below lg this copy sits directly
            * on an editable photograph, and gold-on-gold (an eyebrow over a brass
@@ -168,7 +170,7 @@ export function Hero({ slides = [] }: { slides?: HeroSlide[] }) {
       </div>
 
       {/* Scroll cue — sits over the photograph on desktop, centred on mobile. */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-7 z-10 flex flex-col items-center gap-2.5 lg:left-auto lg:right-0 lg:w-[58%]">
+      <div className="hero-pull-copy pointer-events-none absolute inset-x-0 bottom-7 z-10 flex flex-col items-center gap-2.5 lg:left-auto lg:right-0 lg:w-[58%]">
         <span
           aria-hidden
           className="flex h-7 w-[1.1rem] items-start justify-center rounded-full border border-foreground/35 pt-1.5 lg:border-white/35"
@@ -179,6 +181,7 @@ export function Hero({ slides = [] }: { slides?: HeroSlide[] }) {
           Scroll to explore
         </span>
       </div>
+      </HeroPull>
     </section>
   );
 }
