@@ -1,10 +1,12 @@
 "use client";
 
-/* eslint-disable @next/next/no-img-element -- gallery uses public bucket URLs */
-
 import { useCallback, useRef, useState } from "react";
+import Image from "next/image";
 import { MoveHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+/** Both halves are the same photograph size, so they share one `sizes`. */
+const SIZES = "(min-width: 640px) 896px, 100vw";
 
 /** One half of the reveal — real image, or a labelled gradient placeholder. */
 function Layer({
@@ -19,7 +21,14 @@ function Layer({
   return (
     <div className="absolute inset-0">
       {url ? (
-        <img src={url} alt={label} className="h-full w-full object-cover" draggable={false} />
+        <Image
+          src={url}
+          alt={label}
+          fill
+          sizes={SIZES}
+          className="object-contain"
+          draggable={false}
+        />
       ) : (
         <div className={cn("flex h-full w-full items-center justify-center", placeholderClass)}>
           <span className="text-sm font-medium text-white/70">{label}</span>
@@ -29,12 +38,20 @@ function Layer({
   );
 }
 
+/**
+ * Drag-to-reveal comparison, shown only for projects that have both halves.
+ * Single-image projects are the norm in this gallery, so the caller decides
+ * whether this component is warranted; the `afterUrl === null` branch below is
+ * a fallback, not the main path.
+ */
 export function BeforeAfterSlider({
   beforeUrl,
   afterUrl,
+  className,
 }: {
   beforeUrl: string;
   afterUrl: string | null;
+  className?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState(50); // % revealed of the "after" layer
@@ -52,8 +69,12 @@ export function BeforeAfterSlider({
   // Note: null means "no after"; an empty string is a placeholder-backed pair.
   if (afterUrl === null) {
     return (
-      <div className="relative aspect-[4/3] overflow-hidden rounded-t-2xl">
-        <Layer url={beforeUrl} label="Completed" placeholderClass="bg-gradient-to-br from-neutral-700 to-neutral-900" />
+      <div className={cn("relative aspect-[4/3] overflow-hidden", className)}>
+        <Layer
+          url={beforeUrl}
+          label="Completed"
+          placeholderClass="bg-gradient-to-br from-neutral-700 to-neutral-900"
+        />
       </div>
     );
   }
@@ -61,7 +82,10 @@ export function BeforeAfterSlider({
   return (
     <div
       ref={containerRef}
-      className="relative aspect-[4/3] touch-none select-none overflow-hidden rounded-t-2xl"
+      className={cn(
+        "relative aspect-[4/3] touch-none select-none overflow-hidden",
+        className
+      )}
       onPointerDown={(e) => {
         dragging.current = true;
         e.currentTarget.setPointerCapture(e.pointerId);
@@ -100,6 +124,9 @@ export function BeforeAfterSlider({
         aria-valuemin={0}
         aria-valuemax={100}
         onKeyDown={(e) => {
+          // Stop the lightbox's own arrow-key paging from firing underneath:
+          // while the handle has focus the arrows belong to the slider.
+          if (e.key === "ArrowLeft" || e.key === "ArrowRight") e.stopPropagation();
           if (e.key === "ArrowLeft") setPos((p) => Math.max(0, p - 4));
           if (e.key === "ArrowRight") setPos((p) => Math.min(100, p + 4));
         }}

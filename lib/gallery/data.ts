@@ -60,8 +60,16 @@ export async function getGalleryItems(): Promise<{
     .order("featured", { ascending: false })
     .order("sort_order");
 
-  const items = (data ?? []) as unknown as GalleryItem[];
+  const rows = (data ?? []) as unknown as GalleryItem[];
+  // Titles are typed by hand in the admin, so they arrive with stray leading,
+  // trailing and doubled spaces. Cleaning on read keeps the stored value the
+  // owner's and still renders tidily.
+  const items = rows.map((row) => ({ ...row, title: tidyTitle(row.title) }));
   return { items, filters: dedupeFilters(items), demo: false };
+}
+
+function tidyTitle(title: string): string {
+  return title.trim().replace(/\s+/g, " ");
 }
 
 function dedupeFilters(items: GalleryItem[]): GalleryFilter[] {
