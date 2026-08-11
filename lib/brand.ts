@@ -33,7 +33,16 @@ export const BRAND = {
   /** One-line promise. Used in metadata, the OG image and the footer. */
   tagline: "Your home, done properly",
   /** Bare host, no protocol. `NEXT_PUBLIC_SITE_URL` overrides this at runtime. */
-  domain: "modern-home2.vercel.app",
+  domain: "acestudio55.com.au",
+  /**
+   * Transactional *sending* address. `EMAIL_FROM` overrides this at runtime.
+   *
+   * This is a Resend sender, not a mailbox — mail sent here only arrives if
+   * inbound routing (Workspace/forwarding) is set up separately. That's why
+   * `BUSINESS.email`, the address we *publish* to customers, is still null:
+   * see the null-means-omit rule in `lib/business.ts`.
+   */
+  email: "bookings@acestudio55.com.au",
 
   /**
    * Artwork. All PNG with transparent backgrounds — there is no SVG, so these

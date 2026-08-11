@@ -1,6 +1,6 @@
 import { formatInTimeZone } from "date-fns-tz";
 import { BUSINESS_TIME_ZONE } from "@/lib/slots";
-import { BRAND } from "@/lib/brand";
+import { BRAND, SITE_ORIGIN } from "@/lib/brand";
 import { BUSINESS } from "@/lib/business";
 
 /**
@@ -30,9 +30,7 @@ export type SendEmailInput = {
 
 export type SendEmailResult = { ok: boolean; id?: string; skipped?: boolean };
 
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://modern-home2.vercel.app";
-const FROM = process.env.EMAIL_FROM ?? `${BRAND.name} <onboarding@resend.dev>`;
+const FROM = process.env.EMAIL_FROM ?? `${BRAND.name} <${BRAND.email}>`;
 
 const aud = (cents: unknown) =>
   typeof cents === "number"
@@ -73,7 +71,7 @@ function renderHtml(template: EmailTemplate, data: Record<string, unknown>): str
       <div style="font-size:20px;font-weight:700;letter-spacing:-0.02em">${BRAND.name}</div>
       <div style="background:#fff;border:1px solid #e7e5e4;border-radius:16px;padding:24px;margin-top:16px;line-height:1.5;font-size:15px">
         ${body(template, data)}
-        <p style="margin-top:24px"><a href="${SITE_URL}/portal" style="display:inline-block;background:#1c1917;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">Open your portal</a></p>
+        <p style="margin-top:24px"><a href="${SITE_ORIGIN}/portal" style="display:inline-block;background:#1c1917;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">Open your portal</a></p>
       </div>
       <p style="color:#a8a29e;font-size:12px;margin-top:16px">${BRAND.name} · Servicing ${BUSINESS.serviceArea}</p>
     </div>

@@ -1,8 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getActiveServices } from "@/lib/services/data";
-
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://modern-home2.vercel.app";
+import { SITE_ORIGIN as siteUrl } from "@/lib/brand";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();

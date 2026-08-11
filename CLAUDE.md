@@ -8,7 +8,7 @@ Concise guide for AI assistants working in this repo. See `docs/` for depth.
 tradie (TV mounting, floating/showcase cabinets, LED strip lighting, room heaters).
 Customers get an instant fixed-price quote via a wizard, pick a 2-hour arrival window,
 and manage jobs in a portal. Admins run quotes/bookings/calendar/services/gallery from
-a dashboard. Live at `modern-home2.vercel.app`.
+a dashboard. Live at `acestudio55.com.au`.
 
 ## Tech stack
 

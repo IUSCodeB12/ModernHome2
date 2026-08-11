@@ -4,26 +4,31 @@ These steps happen in third-party dashboards (Supabase, Google Cloud, Cloudflare
 not in code. Do them in order. Values in `.env.local` are gitignored — never commit them.
 
 Reference URLs:
-- Prod: `https://modern-home2.vercel.app`
+- Prod: `https://acestudio55.com.au`
 - Local: `http://localhost:3000`
 
 ---
 
 ## 1. Supabase URL configuration
 Supabase → **Authentication → URL Configuration**
-- **Site URL:** `https://modern-home2.vercel.app`
+- **Site URL:** `https://acestudio55.com.au`
 - **Redirect URLs** (add all):
-  - `https://modern-home2.vercel.app/**`
-  - `https://modern-home2.vercel.app/auth/confirm`
-  - `https://modern-home2.vercel.app/auth/callback`   ← Google OAuth (see §3)
+  - `https://acestudio55.com.au/**`
+  - `https://acestudio55.com.au/auth/confirm`
+  - `https://acestudio55.com.au/auth/callback`   ← Google OAuth (see §3)
   - `http://localhost:3000/**` (local dev)
 
-## 2. Email / OTP (Resend SMTP)  — mostly already done
+## 2. Email / OTP (Resend SMTP)
 Supabase → **Authentication → Emails**
-- SMTP: host `smtp.resend.com`, user `resend`, password = Resend API key, sender `onboarding@resend.dev` (or your verified domain).
+- SMTP: host `smtp.resend.com`, port `465`, user `resend`, password = Resend API key,
+  sender `bookings@acestudio55.com.au`.
 - **Email OTP length: 6** (matches the 6-box input).
-- OTP template uses `{{ .Token }}` (sends a code, not a link). Already configured.
-- ⚠️ **Verify your own domain in Resend** so customer emails don't hit the test-domain restriction (only the account owner receives mail on the test sender) and to avoid spam folders.
+- OTP template uses `{{ .Token }}` (sends a code, not a link). Paste
+  `supabase/email-templates/otp.html` into **both** Magic Link and Confirm signup.
+
+⚠️ The sender only works once `acestudio55.com.au` is **verified in Resend** — until then
+every send 403s. Domain verification and its DNS records are a prerequisite:
+see **`docs/domain-email-setup.md`**, which is the runbook for §1–§2 and Vercel DNS.
 
 ## 3. Google OAuth  (needs code + config)
 **Google Cloud Console** → APIs & Services → Credentials → OAuth 2.0 Client ID (Web):
@@ -50,7 +55,7 @@ Supabase → **Authentication → Emails**
 ## 5. Production env vars (Vercel)
 Vercel → Project → Settings → Environment Variables (Production + Preview):
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
-- `NEXT_PUBLIC_SITE_URL=https://modern-home2.vercel.app`
+- `NEXT_PUBLIC_SITE_URL=https://acestudio55.com.au`
 - (after §4) `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`
 - Redeploy after changes.
 
