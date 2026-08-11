@@ -58,10 +58,10 @@ Vercel routes on the `Host` header, which is why Vercel ticks www as valid. The 
 move IPs without you; it is advisory, not an error.
 
 GoDaddy may refuse to save that CNAME anyway, with *"Domain has some invalid records"* —
-a message that names no record and blocks the save regardless. It usually means the
-**GoDaddy Website Builder site is still attached** to the domain, holding a claim on `@`
-and `www`. Disconnect it under **Website**; otherwise it may reclaim the apex `A` you
-just set. Since the chain above already works, don't let this block you.
+a message that names no record and blocks the save regardless. The cause was never
+identified: the Website Builder site is only an unpublished draft, and GoDaddy already
+flags the domain as **External Website: CONNECTED**, so nothing there holds a claim on
+`@` or `www`. It doesn't matter — the chain above already works, so don't let it block you.
 
 Leave `NS`, `SOA` and `_domainconnect` alone.
 
