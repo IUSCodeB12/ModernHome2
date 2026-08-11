@@ -32,10 +32,23 @@ export const BRAND = {
   monogram: "AS",
   /** One-line promise. Used in metadata, the OG image and the footer. */
   tagline: "Your home, done properly",
-  /** Bare host, no protocol. `NEXT_PUBLIC_SITE_URL` overrides this at runtime. */
-  domain: "acestudio55.com.au",
+  /**
+   * Canonical web host — bare, no protocol. `NEXT_PUBLIC_SITE_URL` overrides
+   * this at runtime.
+   *
+   * **`www` is deliberate, and must match Vercel.** The apex 308-redirects here,
+   * so serving the apex as canonical would put a redirect hop in front of every
+   * canonical URL, sitemap entry and OTP callback, and would no longer match the
+   * Supabase Site URL. If you ever flip which host Vercel serves, flip this too —
+   * they are one decision, not two.
+   */
+  domain: "www.acestudio55.com.au",
   /**
    * Transactional *sending* address. `EMAIL_FROM` overrides this at runtime.
+   *
+   * On the **apex**, not `www` — mail domains have no www, and Resend verifies
+   * DKIM/SPF against `acestudio55.com.au`. The mismatch with `domain` above is
+   * correct; don't "fix" it.
    *
    * This is a Resend sender, not a mailbox — mail sent here only arrives if
    * inbound routing (Workspace/forwarding) is set up separately. That's why

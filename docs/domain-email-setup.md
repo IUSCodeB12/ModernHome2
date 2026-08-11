@@ -29,37 +29,54 @@ Nothing below requires a code change — the domain lives in exactly one constan
 Both `acestudio55.com.au` and `www.acestudio55.com.au` are already added in
 Vercel → Project → **Settings → Domains**.
 
-**Apex is canonical**, matching `BRAND.domain`. Vercel defaulted to the opposite
-(apex 308→ www), so fix the direction or every canonical URL, sitemap entry and OTP
-redirect takes a needless hop and the Supabase Site URL won't match:
-- apex row → Edit → **no redirect** (serves Production)
-- `www` row → Edit → **redirect to `acestudio55.com.au`**
+**`www` is canonical**, matching `BRAND.domain`. Settled state in Vercel:
 
-Then at GoDaddy, two existing records change:
+| Domain | Setting |
+|---|---|
+| `www.acestudio55.com.au` | Connect to an environment → **Production** |
+| `acestudio55.com.au` | Redirect → `www.acestudio55.com.au`, **308 Permanent** |
+| `modern-home2.vercel.app` | Production — keep as a fallback until the new host is proven |
 
-| Type | Name | Was | Becomes |
-|---|---|---|---|
-| `A` | `@` | `WebsiteBuilder Site` | the IP on Vercel's **apex** row |
-| `CNAME` | `www` | `acestudio55.com.au.` | `03e68516123362df.vercel-dns-017.com.` |
+Use **308**, not Vercel's default 307: a temporary redirect tells Google explicitly *not*
+to consolidate ranking onto the target, which is the opposite of what a permanent
+canonical move wants.
 
-⚠️ **Read the apex `A` value off Vercel's dashboard** (expand *View DNS configuration*) —
-Vercel is mid-migration off `76.76.21.21` onto a wider IP range, so the dashboard is the
-only authoritative source. The legacy IP still works but shouldn't be assumed.
+⚠️ Adding the apex via **Add Domains** fails with *"A domain cannot redirect to itself"*
+if **Include apex and www variants** is left ticked — it silently expands your entry into
+both hosts, then points www at itself. Untick it and add the apex alone.
 
-The `A @ → WebsiteBuilder Site` entry is GoDaddy's managed pointer at their site builder —
-it's what currently serves the domain. If it won't take a plain IP, delete and re-add it,
-or disconnect the Website Builder site first.
+At GoDaddy, the records that matter:
 
-Leave `NS`, `SOA` and `_domainconnect` alone. Then **Refresh** both Vercel rows; they read
-*Invalid Configuration* until DNS propagates, and the records are on a 1-hour TTL.
+| Type | Name | Value |
+|---|---|---|
+| `A` | `@` | `76.76.21.21` (replaces GoDaddy's `WebsiteBuilder Site` pointer) |
+| `CNAME` | `www` | ideally `03e68516123362df.vercel-dns-017.com.` |
 
-> If you'd rather make **www** canonical — more robust, since a CNAME lets Vercel repoint
-> itself while an apex `A` is a hardcoded IP — leave Vercel as it is and change
-> `BRAND.domain` to `www.acestudio55.com.au` instead. Pick one; don't split.
+`www` currently CNAMEs to the apex, which *works* — it chains to the apex `A` and Vercel
+routes on the Host header — but it pins www's fate to a hardcoded IP, which is what
+Vercel's amber **DNS Change Recommended** is about. Not blocking; worth fixing.
 
-**Wait for green.** Vercel issues the TLS certificate automatically once DNS resolves —
-usually minutes, occasionally a few hours. Don't continue until Vercel says *Valid
-Configuration* and `https://acestudio55.com.au` loads.
+Leave `NS`, `SOA` and `_domainconnect` alone.
+
+### Verifying, and why the dashboard lies
+
+Vercel's blue tick means *Vercel* is satisfied. It does not mean the world sees it — TTL
+is 1 hour, so public resolvers serve the old GoDaddy IPs long after the change is saved.
+Check the authoritative nameserver directly rather than a cached resolver:
+
+```bash
+dig +short @ns51.domaincontrol.com acestudio55.com.au A
+```
+
+`76.76.21.21` means GoDaddy has it right and you are only waiting on TTL. Compare with
+`dig +short acestudio55.com.au A` (cached); when the two agree, it has propagated.
+
+A TLS error naming `*.secureserversites.net` is the giveaway that you are **still hitting
+GoDaddy's Website Builder**, not Vercel — that's their hosting cert, and it means the old
+record is still live somewhere in the chain.
+
+**Wait for green.** Vercel issues the certificate automatically once DNS resolves. Don't
+continue until `https://www.acestudio55.com.au` actually loads the app.
 
 ## 2. Verify the domain in Resend
 
