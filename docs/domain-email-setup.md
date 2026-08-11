@@ -52,9 +52,16 @@ At GoDaddy, the records that matter:
 | `A` | `@` | `76.76.21.21` (replaces GoDaddy's `WebsiteBuilder Site` pointer) |
 | `CNAME` | `www` | ideally `03e68516123362df.vercel-dns-017.com.` |
 
-`www` currently CNAMEs to the apex, which *works* — it chains to the apex `A` and Vercel
-routes on the Host header — but it pins www's fate to a hardcoded IP, which is what
-Vercel's amber **DNS Change Recommended** is about. Not blocking; worth fixing.
+`www` CNAMEs to the apex, and **that is fine — leave it**. It chains to the apex `A` and
+Vercel routes on the `Host` header, which is why Vercel ticks www as valid. The amber
+**DNS Change Recommended** only means Vercel would prefer its dedicated CNAME so it can
+move IPs without you; it is advisory, not an error.
+
+GoDaddy may refuse to save that CNAME anyway, with *"Domain has some invalid records"* —
+a message that names no record and blocks the save regardless. It usually means the
+**GoDaddy Website Builder site is still attached** to the domain, holding a claim on `@`
+and `www`. Disconnect it under **Website**; otherwise it may reclaim the apex `A` you
+just set. Since the chain above already works, don't let this block you.
 
 Leave `NS`, `SOA` and `_domainconnect` alone.
 
