@@ -2,8 +2,8 @@
 
 Connecting `acestudio55.com.au` and switching transactional email from stub to real.
 
-DNS is managed at **the registrar** (where the domain was bought), so every record
-below goes in that control panel.
+DNS is managed at **GoDaddy** (Domain → DNS records), so every record below goes there.
+Both domains are already added on the Vercel side.
 
 **Do the steps in order.** Steps 3–4 flip the site over to the new domain, and they
 only work once 1–2 have gone green. Flipping early takes the site down.
@@ -26,21 +26,36 @@ Nothing below requires a code change — the domain lives in exactly one constan
 
 ## 1. Point the domain at Vercel
 
-Vercel → Project → **Settings → Domains** → Add `acestudio55.com.au`.
-Add `www.acestudio55.com.au` too and set it to **redirect to the apex** (one canonical
-host — two live hosts split SEO and break OAuth redirects).
+Both `acestudio55.com.au` and `www.acestudio55.com.au` are already added in
+Vercel → Project → **Settings → Domains**.
 
-Vercel then shows the exact records to create at your registrar. They're normally:
+**Apex is canonical**, matching `BRAND.domain`. Vercel defaulted to the opposite
+(apex 308→ www), so fix the direction or every canonical URL, sitemap entry and OTP
+redirect takes a needless hop and the Supabase Site URL won't match:
+- apex row → Edit → **no redirect** (serves Production)
+- `www` row → Edit → **redirect to `acestudio55.com.au`**
 
-| Type | Name / Host | Value |
-|---|---|---|
-| `A` | `@` (apex) | `76.76.21.21` |
-| `CNAME` | `www` | `cname.vercel-dns.com` |
+Then at GoDaddy, two existing records change:
 
-⚠️ **Use the values Vercel's dashboard shows, not these** — Vercel has changed its apex
-IP and region-specific CNAMEs before, and the dashboard is authoritative.
+| Type | Name | Was | Becomes |
+|---|---|---|---|
+| `A` | `@` | `WebsiteBuilder Site` | the IP on Vercel's **apex** row |
+| `CNAME` | `www` | `acestudio55.com.au.` | `03e68516123362df.vercel-dns-017.com.` |
 
-Some registrars won't accept `@` for the host; leave it blank or use the bare domain instead.
+⚠️ **Read the apex `A` value off Vercel's dashboard** (expand *View DNS configuration*) —
+Vercel is mid-migration off `76.76.21.21` onto a wider IP range, so the dashboard is the
+only authoritative source. The legacy IP still works but shouldn't be assumed.
+
+The `A @ → WebsiteBuilder Site` entry is GoDaddy's managed pointer at their site builder —
+it's what currently serves the domain. If it won't take a plain IP, delete and re-add it,
+or disconnect the Website Builder site first.
+
+Leave `NS`, `SOA` and `_domainconnect` alone. Then **Refresh** both Vercel rows; they read
+*Invalid Configuration* until DNS propagates, and the records are on a 1-hour TTL.
+
+> If you'd rather make **www** canonical — more robust, since a CNAME lets Vercel repoint
+> itself while an apex `A` is a hardcoded IP — leave Vercel as it is and change
+> `BRAND.domain` to `www.acestudio55.com.au` instead. Pick one; don't split.
 
 **Wait for green.** Vercel issues the TLS certificate automatically once DNS resolves —
 usually minutes, occasionally a few hours. Don't continue until Vercel says *Valid
@@ -62,15 +77,25 @@ particular is a long one-off string that can't be guessed or reused:
 
 Then click **Verify**. It goes green in minutes if the records are right.
 
-**Add DMARC as well** — not strictly required, but Gmail and Yahoo now demote or reject
-bulk senders without it:
+### ⚠️ DMARC already exists — and it is strict
 
-| Type | Name / Host | Value |
-|---|---|---|
-| `TXT` | `_dmarc` | `v=DMARC1; p=none; rua=mailto:bookings@acestudio55.com.au` |
+GoDaddy pre-created a `_dmarc` TXT record:
 
-`p=none` monitors without blocking anything. Tighten to `p=quarantine` later, once you've
-confirmed legitimate mail passes.
+```
+v=DMARC1; p=quarantine; adkim=r; aspf=r; rua=mailto:dmarc_rua@onsecureserver.net;
+```
+
+`p=quarantine` sends anything failing DMARC **straight to spam**. Until the DKIM and SPF
+records above verify, nothing authorises Resend to send as this domain — so every
+transactional email would be quarantined.
+
+**Do not add a second `_dmarc` record** — two of them is a hard fail, same as split SPF.
+Either relax the existing one to `p=none` until Resend reads Verified, or simply leave
+`RESEND_API_KEY` unset until then (email stays stubbed, so nothing sends and nothing
+gets binned).
+
+Once DKIM verifies, alignment is relaxed (`adkim=r`) and Resend's signature satisfies
+DMARC, so `p=quarantine` is right to keep long-term. Only the gap in between is dangerous.
 
 ### Common failures
 - **Records not found** — the registrar auto-appended the domain, giving you
