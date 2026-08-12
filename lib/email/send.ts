@@ -16,6 +16,7 @@ export type EmailTemplate =
   | "quote_adjusted"
   | "quote_rejected"
   | "booking_confirmed"
+  | "booking_cancelled"
   | "payment_due"
   | "receipt_ready"
   | "reschedule_requested"
@@ -54,6 +55,19 @@ function body(template: EmailTemplate, d: Record<string, unknown>): string {
       return `<h1>An update on your quote</h1><p>Unfortunately we're unable to proceed with your ${service} request. Reply to this email if you'd like to discuss options.</p>`;
     case "booking_confirmed":
       return `<h1>You're booked in</h1><p>Your ${service} is confirmed for <strong>${slot(d.slotStart)}</strong>.</p><p>Please make sure any materials you're supplying are ready to install. Otherwise, have someone at home who can guide our installer on what needs doing.</p>`;
+    case "booking_cancelled": {
+      // Name the window we're cancelling when there was one. Someone who took
+      // a day off work needs to see the date they can now reclaim, not just
+      // the word "cancelled".
+      //
+      // TODO(stripe): "you won't be charged" is true only while deposits are
+      // stubbed. Once real deposits are taken this has to become a refund
+      // statement, or it becomes a false assurance about someone's money.
+      // See docs/stripe-plan.md.
+      const when = slot(d.slotStart);
+      const scheduled = when ? ` scheduled for <strong>${when}</strong>` : "";
+      return `<h1>Your booking has been cancelled</h1><p>We've cancelled your ${service}${scheduled}. You don't need to do anything, and you won't be charged.</p><p>If this is a surprise, or you'd like to rebook, just reply to this email — we'll sort it out.</p>`;
+    }
     case "reschedule_confirmed":
       return `<h1>Your visit has been rescheduled</h1><p>Your ${service} is now booked for <strong>${slot(d.slotStart)}</strong>. See you then!</p>`;
     case "reschedule_requested":

@@ -75,6 +75,17 @@ export async function updateBookingStatus(
       await notifyCustomer(admin, booking.customer_id, "receipt_ready", {
         service: serviceName,
       });
+    } else if (toStatus === "cancelled" && from !== "enquiry") {
+      // Cancelling is reachable from every state, and until now told the
+      // customer nothing — including someone holding a confirmed arrival
+      // window. Skipped only from 'enquiry', where the customer has had no
+      // contact yet and the cancel is the tradie clearing a dead lead.
+      // Quote rejection has its own email and updates bookings directly,
+      // so it doesn't reach this branch and won't double up.
+      await notifyCustomer(admin, booking.customer_id, "booking_cancelled", {
+        service: serviceName,
+        slotStart: booking.slot_start,
+      });
     }
 
     revalidatePath("/admin/bookings");

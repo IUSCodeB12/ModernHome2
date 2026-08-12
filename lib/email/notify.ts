@@ -11,6 +11,7 @@ const SUBJECTS: Record<EmailTemplate, string> = {
   quote_adjusted: `Your ${BRAND.name} quote has been updated`,
   quote_rejected: `An update on your ${BRAND.name} quote`,
   booking_confirmed: `You're booked in with ${BRAND.name}`,
+  booking_cancelled: `Your ${BRAND.name} booking has been cancelled`,
   payment_due: `Payment for your ${BRAND.name} job`,
   receipt_ready: `Your ${BRAND.name} receipt`,
   reschedule_requested: "Reschedule request received",
