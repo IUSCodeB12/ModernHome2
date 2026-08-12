@@ -68,7 +68,10 @@ function body(template: EmailTemplate, d: Record<string, unknown>): string {
 function renderHtml(template: EmailTemplate, data: Record<string, unknown>): string {
   return `<!doctype html><html><body style="margin:0;background:#f5f3ee;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1c1917">
     <div style="max-width:520px;margin:0 auto;padding:32px 24px">
-      <div style="font-size:20px;font-weight:700;letter-spacing:-0.02em">${BRAND.name}</div>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td style="padding-right:10px;vertical-align:middle"><img src="${SITE_ORIGIN}${BRAND.mark.src}" width="56" height="44" alt="" style="display:block;border:0" /></td>
+        <td style="vertical-align:middle;font-size:20px;font-weight:700;letter-spacing:-0.02em;color:#1c1917">${BRAND.name}</td>
+      </tr></table>
       <div style="background:#fff;border:1px solid #e7e5e4;border-radius:16px;padding:24px;margin-top:16px;line-height:1.5;font-size:15px">
         ${body(template, data)}
         <p style="margin-top:24px"><a href="${SITE_ORIGIN}/portal" style="display:inline-block;background:#1c1917;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">Open your portal</a></p>

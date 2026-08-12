@@ -7,6 +7,9 @@
   Uses {{ .Token }} (the 6-digit code the /login screen asks for) and keeps
   {{ .ConfirmationURL }} as a one-tap fallback. Supabase substitutes both at
   send time; mangle either and the code box arrives blank.
+  The logo resolves via {{ .SiteURL }}, so it follows Authentication → URL
+  Configuration → Site URL. Email clients fetch logos over HTTP, so this must
+  stay an absolute public URL — data URIs and inline SVG get stripped.
   Subject for both: Your AceStudio55 sign-in code
 -->
 <div style="background:#f4f1ec;margin:0;padding:32px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
@@ -16,7 +19,10 @@
         <table role="presentation" width="440" cellpadding="0" cellspacing="0" style="width:440px;max-width:92%;background:#ffffff;border:1px solid #e7e1d8;border-radius:16px;overflow:hidden;">
           <tr>
             <td style="padding:32px 40px 0;">
-              <div style="font-size:20px;font-weight:700;letter-spacing:-0.02em;color:#1a1712;">AceStudio55</div>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+                <td style="padding-right:10px;vertical-align:middle;"><img src="{{ .SiteURL }}/brand/mark.png" width="56" height="44" alt="" style="display:block;border:0;" /></td>
+                <td style="vertical-align:middle;font-size:20px;font-weight:700;letter-spacing:-0.02em;color:#1a1712;">AceStudio55</td>
+              </tr></table>
             </td>
           </tr>
           <tr>
