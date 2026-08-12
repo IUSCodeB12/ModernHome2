@@ -24,7 +24,12 @@ Supabase → **Authentication → Emails**
   sender `bookings@acestudio55.com.au`.
 - **Email OTP length: 6** (matches the 6-box input).
 - OTP template uses `{{ .Token }}` (sends a code, not a link). Paste
-  `supabase/email-templates/otp.html` into **both** Magic Link and Confirm signup.
+  `supabase/email-templates/otp.html` — a file in *this repo*, not something Supabase
+  hosts — into **both** templates under Authentication → Emails → **Templates**:
+  **Magic link or OTP** (existing addresses) and **Confirm sign up** (first-time
+  addresses). Subject on both: `Your AceStudio55 sign-in code`. Everything else on that
+  page is unused — the app is fully passwordless, so Reset password and Reauthentication
+  never fire.
 
 ⚠️ The sender only works once `acestudio55.com.au` is **verified in Resend** — until then
 every send 403s. Domain verification and its DNS records are a prerequisite:
