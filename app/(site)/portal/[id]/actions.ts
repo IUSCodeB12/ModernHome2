@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, isSupabaseConfigured } from "@/lib/supabase/admin";
 import { canTransition, type BookingStatus } from "@/lib/bookings/status";
+import { notifyAdmin, notifyCustomer } from "@/lib/email/notify";
 
 export type QuoteResponseState = { ok?: string; error?: string } | null;
 
@@ -31,7 +32,9 @@ export async function respondToQuote(
   // RLS scopes this to the customer's own rows.
   const { data: quote } = await supabase
     .from("quote_requests")
-    .select("id, bookings(id, status, customer_id)")
+    .select(
+      "id, final_quote_cents, services(name), profiles(full_name), bookings(id, status, customer_id, slot_start, slot_end)"
+    )
     .eq("id", quoteId)
     .maybeSingle();
 
@@ -53,6 +56,35 @@ export async function respondToQuote(
     .eq("id", booking.id);
 
   if (error) return { error: "Something went wrong — please try again." };
+
+  // The tradie's only signal that a job was won or lost used to be opening the
+  // dashboard. Accepting is the moment a lead becomes work, so it's the one
+  // alert that most needs to arrive on a phone.
+  const service = quote.services?.name ?? "their job";
+  const customerName = quote.profiles?.full_name ?? null;
+  if (decision === "accept") {
+    await notifyAdmin(admin, "admin_quote_accepted", {
+      service,
+      customerName,
+      amountCents: quote.final_quote_cents,
+      slotStart: booking.slot_start,
+      slotEnd: booking.slot_end,
+    });
+  } else {
+    await Promise.all([
+      notifyAdmin(admin, "admin_quote_declined", {
+        service,
+        customerName,
+        amountCents: quote.final_quote_cents,
+      }),
+      // Confirm the cancellation back to the customer too — it's their paper
+      // trail, and it gives an accidental click a way back.
+      notifyCustomer(admin, booking.customer_id, "booking_cancelled", {
+        service,
+        slotStart: booking.slot_start,
+      }),
+    ]);
+  }
 
   revalidatePath(`/portal/${quoteId}`);
   revalidatePath("/portal");
@@ -82,7 +114,9 @@ export async function requestReschedule(
 
   const { data: quote } = await supabase
     .from("quote_requests")
-    .select("id, bookings(id, status, customer_id)")
+    .select(
+      "id, services(name), profiles(full_name), bookings(id, status, customer_id, slot_start, slot_end)"
+    )
     .eq("id", quoteId)
     .maybeSingle();
 
@@ -95,15 +129,34 @@ export async function requestReschedule(
     return { error: "This booking can't be rescheduled here — please contact us." };
   }
 
+  const trimmedNote = note.trim().slice(0, 500) || null;
+
   const admin = createAdminClient();
   const { error } = await admin
     .from("bookings")
     .update({
       reschedule_requested_at: new Date().toISOString(),
-      reschedule_note: note.trim().slice(0, 500) || null,
+      reschedule_note: trimmedNote,
     })
     .eq("id", booking.id);
   if (error) return { error: "Something went wrong — please try again." };
+
+  // Both halves of this were missing: the tradie was never told a reschedule
+  // had been asked for (it only showed as a flag on the booking row), and the
+  // `reschedule_requested` template existed but had no call site at all.
+  const service = quote.services?.name ?? "your job";
+  await Promise.all([
+    notifyCustomer(admin, booking.customer_id, "reschedule_requested", {
+      service,
+      slotStart: booking.slot_start,
+    }),
+    notifyAdmin(admin, "admin_reschedule_requested", {
+      service,
+      customerName: quote.profiles?.full_name ?? null,
+      slotStart: booking.slot_start,
+      note: trimmedNote,
+    }),
+  ]);
 
   revalidatePath(`/portal/${quoteId}`);
   revalidatePath("/portal");

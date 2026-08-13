@@ -1,106 +1,69 @@
-import { formatInTimeZone } from "date-fns-tz";
-import { BUSINESS_TIME_ZONE } from "@/lib/slots";
-import { BRAND, SITE_ORIGIN } from "@/lib/brand";
-import { BUSINESS } from "@/lib/business";
+import { FROM, REPLY_TO } from "@/lib/email/config";
+import { renderHtml, renderText } from "@/lib/email/render";
+import {
+  TEMPLATES,
+  type EmailTemplate,
+  type TemplatePayloads,
+} from "@/lib/email/templates";
 
 /**
- * Transactional email via Resend.
+ * Transactional email transport (Resend).
  *
- * Sends real branded HTML when RESEND_API_KEY is set; otherwise logs the
- * payload (local dev / before the domain is verified). To go live: set
- * RESEND_API_KEY + EMAIL_FROM (a verified-domain sender) in the environment.
+ * Sends real branded mail when `RESEND_API_KEY` is set; otherwise logs the
+ * payload and reports `skipped` — that's how local dev and preview deploys
+ * avoid emailing real customers. To go live, see `docs/domain-email-setup.md`.
+ *
+ * This module knows nothing about *what* an email says (see `templates.ts`) or
+ * *who* receives it (see `notify.ts`).
  */
 
-export type EmailTemplate =
-  | "quote_ready"
-  | "quote_adjusted"
-  | "quote_rejected"
-  | "booking_confirmed"
-  | "booking_cancelled"
-  | "payment_due"
-  | "receipt_ready"
-  | "reschedule_requested"
-  | "reschedule_confirmed";
+export type { EmailTemplate, TemplatePayloads };
 
-export type SendEmailInput = {
+export type SendEmailResult =
+  | { ok: true; id?: string; skipped?: boolean }
+  | { ok: false; error: string };
+
+/**
+ * Render a template to its subject + both MIME parts.
+ *
+ * Exported so tests can assert on output without touching the network, and so
+ * a future preview route can show the tradie exactly what a customer receives.
+ */
+export function buildEmail<K extends EmailTemplate>(
+  template: K,
+  data: TemplatePayloads[K]
+): { subject: string; html: string; text: string } {
+  const def = TEMPLATES[template];
+  const blocks = def.blocks(data);
+  return {
+    subject: def.subject(data),
+    html: renderHtml(blocks, { preheader: def.preheader(data), cta: def.cta }),
+    text: renderText(blocks, { cta: def.cta }),
+  };
+}
+
+export async function sendEmail<K extends EmailTemplate>(input: {
   to: string;
-  template: EmailTemplate;
-  subject: string;
-  data: Record<string, unknown>;
-};
+  template: K;
+  data: TemplatePayloads[K];
+}): Promise<SendEmailResult> {
+  const { to, template, data } = input;
 
-export type SendEmailResult = { ok: boolean; id?: string; skipped?: boolean };
-
-const FROM = process.env.EMAIL_FROM ?? `${BRAND.name} <${BRAND.email}>`;
-
-const aud = (cents: unknown) =>
-  typeof cents === "number"
-    ? `$${(cents / 100).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-    : "";
-
-const slot = (iso: unknown) =>
-  typeof iso === "string"
-    ? formatInTimeZone(new Date(iso), BUSINESS_TIME_ZONE, "EEEE d MMM, h:mmaaa")
-    : "";
-
-/** Returns the inner HTML body (heading + paragraphs) for a template. */
-function body(template: EmailTemplate, d: Record<string, unknown>): string {
-  const service = String(d.service ?? "your job");
-  switch (template) {
-    case "quote_ready":
-      return `<h1>Your quote is ready</h1><p>We've reviewed your ${service} — the price is <strong>${aud(d.amountCents)}</strong>.</p><p>Review and accept it in your portal.</p>`;
-    case "quote_adjusted":
-      return `<h1>Your quote has been updated</h1><p>We've adjusted the quote for your ${service} to <strong>${aud(d.amountCents)}</strong>, with an itemised breakdown you can see in your portal.</p>`;
-    case "quote_rejected":
-      return `<h1>An update on your quote</h1><p>Unfortunately we're unable to proceed with your ${service} request. Reply to this email if you'd like to discuss options.</p>`;
-    case "booking_confirmed":
-      return `<h1>You're booked in</h1><p>Your ${service} is confirmed for <strong>${slot(d.slotStart)}</strong>.</p><p>Please make sure any materials you're supplying are ready to install. Otherwise, have someone at home who can guide our installer on what needs doing.</p>`;
-    case "booking_cancelled": {
-      // Name the window we're cancelling when there was one. Someone who took
-      // a day off work needs to see the date they can now reclaim, not just
-      // the word "cancelled".
-      //
-      // TODO(stripe): "you won't be charged" is true only while deposits are
-      // stubbed. Once real deposits are taken this has to become a refund
-      // statement, or it becomes a false assurance about someone's money.
-      // See docs/stripe-plan.md.
-      const when = slot(d.slotStart);
-      const scheduled = when ? ` scheduled for <strong>${when}</strong>` : "";
-      return `<h1>Your booking has been cancelled</h1><p>We've cancelled your ${service}${scheduled}. You don't need to do anything, and you won't be charged.</p><p>If this is a surprise, or you'd like to rebook, just reply to this email — we'll sort it out.</p>`;
-    }
-    case "reschedule_confirmed":
-      return `<h1>Your visit has been rescheduled</h1><p>Your ${service} is now booked for <strong>${slot(d.slotStart)}</strong>. See you then!</p>`;
-    case "reschedule_requested":
-      return `<h1>Reschedule request received</h1><p>Thanks — we've noted that you'd like a different time for your ${service}. We'll be in touch shortly to confirm a new slot.</p>`;
-    case "payment_due":
-      return `<h1>Your job is complete</h1><p>Thanks for choosing us for your ${service}. Payment can be made to the installer on site or by bank transfer — any extra work agreed on the day is included in your final total, viewable in your portal.</p>`;
-    case "receipt_ready":
-      return `<h1>Payment received — thank you</h1><p>We've recorded payment for your ${service}. You can download your receipt any time from your portal.</p>`;
+  let email: ReturnType<typeof buildEmail>;
+  try {
+    email = buildEmail(template, data);
+  } catch (err) {
+    // A template that throws would otherwise fail silently inside the send
+    // path and look like a delivery problem. Name it as a rendering problem.
+    console.error(`[email] failed to render "${template}"`, err);
+    return { ok: false, error: "render_failed" };
   }
-}
 
-function renderHtml(template: EmailTemplate, data: Record<string, unknown>): string {
-  return `<!doctype html><html><body style="margin:0;background:#f5f3ee;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1c1917">
-    <div style="max-width:520px;margin:0 auto;padding:32px 24px">
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-        <td style="padding-right:10px;vertical-align:middle"><img src="${SITE_ORIGIN}${BRAND.mark.src}" width="56" height="44" alt="" style="display:block;border:0" /></td>
-        <td style="vertical-align:middle;font-size:20px;font-weight:700;letter-spacing:-0.02em;color:#1c1917">${BRAND.name}</td>
-      </tr></table>
-      <div style="background:#fff;border:1px solid #e7e5e4;border-radius:16px;padding:24px;margin-top:16px;line-height:1.5;font-size:15px">
-        ${body(template, data)}
-        <p style="margin-top:24px"><a href="${SITE_ORIGIN}/portal" style="display:inline-block;background:#1c1917;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">Open your portal</a></p>
-      </div>
-      <p style="color:#a8a29e;font-size:12px;margin-top:16px">${BRAND.name} · Servicing ${BUSINESS.serviceArea}</p>
-    </div>
-  </body></html>`;
-}
-
-export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     console.info(
-      `[email:stub] would send "${input.template}" to ${input.to} — subject: ${input.subject}`,
-      input.data
+      `[email:stub] would send "${template}" to ${to} — subject: ${email.subject}`,
+      data
     );
     return { ok: true, skipped: true };
   }
@@ -108,19 +71,25 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
   try {
     const { Resend } = await import("resend");
     const resend = new Resend(apiKey);
-    const { data, error } = await resend.emails.send({
+    const { data: sent, error } = await resend.emails.send({
       from: FROM,
-      to: input.to,
-      subject: input.subject,
-      html: renderHtml(input.template, input.data),
+      to,
+      subject: email.subject,
+      html: email.html,
+      // A plain-text part is not optional in practice: HTML-only mail is a
+      // spam signal, and this domain publishes DMARC p=quarantine.
+      text: email.text,
+      // Omitted entirely when no mailbox exists — a Reply-To that bounces is
+      // worse than none. See `config.ts`.
+      ...(REPLY_TO ? { replyTo: REPLY_TO } : {}),
     });
     if (error) {
-      console.error(`[email] send failed (${input.template} → ${input.to})`, error);
-      return { ok: false };
+      console.error(`[email] send failed (${template} → ${to})`, error);
+      return { ok: false, error: error.message ?? "send_failed" };
     }
-    return { ok: true, id: data?.id };
+    return { ok: true, id: sent?.id };
   } catch (err) {
     console.error("[email] Resend threw", err);
-    return { ok: false };
+    return { ok: false, error: "transport_threw" };
   }
 }

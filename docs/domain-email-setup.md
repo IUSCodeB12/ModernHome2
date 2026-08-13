@@ -16,7 +16,7 @@ Nothing below requires a code change — the domain lives in exactly one constan
 
 | File | Value |
 |---|---|
-| `lib/brand.ts` | `domain: "acestudio55.com.au"`, `email: "bookings@acestudio55.com.au"` |
+| `lib/brand.ts` | `domain: "www.acestudio55.com.au"`, `email: "bookings@acestudio55.com.au"` |
 | `app/sitemap.ts`, `app/robots.ts`, `lib/email/send.ts` | derive from `SITE_ORIGIN` — no hardcoded hosts |
 | `supabase/email-templates/otp.html` | branded AceStudio55 |
 
@@ -129,9 +129,13 @@ DMARC, so `p=quarantine` is right to keep long-term. Only the gap in between is 
 
 ## 3. Set up an inbox (separate from sending)
 
-Resend sends mail; it does **not** receive it. Right now a customer replying to
-`bookings@acestudio55.com.au` gets a bounce — and every transactional email invites a
-reply ("Reply to this email if you'd like to discuss options" in `quote_rejected`).
+Resend sends mail; it does **not** receive it. A customer replying to
+`bookings@acestudio55.com.au` gets a bounce.
+
+The templates now handle this themselves: with no mailbox configured they send no
+`Reply-To` header and say "get in touch through your portal" rather than inviting a reply
+that would bounce. Finishing this step upgrades the copy automatically — see the
+`EMAIL_REPLY_TO` row in §5.
 
 Pick one:
 - **Registrar email forwarding** — free at most AU registrars, forwards to your Gmail.
@@ -147,9 +151,13 @@ publish it. It's deliberately `null` until then.
 ## 4. Supabase URLs
 
 Supabase → **Authentication → URL Configuration**:
-- **Site URL:** `https://acestudio55.com.au`
-- **Redirect URLs:** `https://acestudio55.com.au/**`, plus the `/auth/confirm` and
+- **Site URL:** `https://www.acestudio55.com.au`
+- **Redirect URLs:** `https://www.acestudio55.com.au/**`, plus the `/auth/confirm` and
   `/auth/callback` entries listed in `docs/auth-setup.md` §1. Keep `http://localhost:3000/**`.
+
+**Use `www`, not the apex.** It has to match `BRAND.domain` and the host Vercel actually
+serves (§1). Pointing Site URL at the apex puts a 308 hop in front of every OTP sign-in
+link — it still works, but it's a redirect on the one link that has to be reliable.
 
 Supabase → **Authentication → Emails** → SMTP: sender `bookings@acestudio55.com.au`
 (host `smtp.resend.com`, port `465`, user `resend`, password = Resend API key).
@@ -162,10 +170,20 @@ them first logs out anyone mid-session on the old host.
 Vercel → Settings → **Environment Variables** (Production):
 
 ```
-NEXT_PUBLIC_SITE_URL=https://acestudio55.com.au
+NEXT_PUBLIC_SITE_URL=https://www.acestudio55.com.au
 RESEND_API_KEY=re_...
 EMAIL_FROM=AceStudio55 <bookings@acestudio55.com.au>
 ```
+
+`www` again, for the same reason as §4 — `SITE_ORIGIN` is what builds the logo URL and
+the button link inside every email.
+
+Two optional vars, both safe to leave unset:
+
+| Var | Effect when unset |
+|---|---|
+| `ADMIN_EMAIL` | Admin alerts (new request, quote accepted/declined, reschedule asked for) go to whoever holds `profiles.role = 'admin'`. Set it — comma-separated — to route them elsewhere, e.g. a phone-checked address. |
+| `EMAIL_REPLY_TO` | No `Reply-To` header is set, and the copy says "get in touch through your portal" instead of "reply to this email". Set it (or fill in `BUSINESS.email` after step 3) and both switch over automatically. |
 
 **Redeploy** — `NEXT_PUBLIC_*` vars are inlined at build time, so an env change alone
 changes nothing until a new build runs.
@@ -178,8 +196,8 @@ preview deploys can't email real customers.
 
 ## Verify it worked
 
-1. `https://acestudio55.com.au` loads over HTTPS; `www.` redirects to it.
-2. `https://acestudio55.com.au/robots.txt` — sitemap URL shows the new domain, not `.vercel.app`.
+1. `https://www.acestudio55.com.au` loads over HTTPS; the apex redirects to it.
+2. `https://www.acestudio55.com.au/robots.txt` — sitemap URL shows the new domain, not `.vercel.app`.
    (If it doesn't, `NEXT_PUBLIC_SITE_URL` didn't reach the build — redeploy.)
 3. Sign in with a **non-admin** email — the OTP arrives branded, from `bookings@`.
 4. Send yourself a real transactional email end-to-end: create a test quote, mark it ready,

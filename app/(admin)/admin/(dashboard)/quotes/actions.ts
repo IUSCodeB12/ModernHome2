@@ -130,7 +130,6 @@ export async function adjustQuote(
     await notifyCustomer(admin, quote.customer_id, "quote_adjusted", {
       service: quote.services?.name,
       amountCents: totals.total_cents,
-      lineItems: items,
     });
 
     revalidatePath("/admin/quotes");
@@ -152,7 +151,7 @@ export async function rejectQuote(
   return adminAction(async ({ admin }) => {
     const { data: quote } = await admin
       .from("quote_requests")
-      .select("id, customer_id, admin_notes")
+      .select("id, customer_id, admin_notes, services(name)")
       .eq("id", parsed.data.quoteId)
       .single();
     if (!quote) throw new Error("Quote not found.");
@@ -165,7 +164,10 @@ export async function rejectQuote(
 
     // Cancel the linked booking, if any.
     await admin.from("bookings").update({ status: "cancelled" }).eq("quote_request_id", quote.id);
+    // The reject dialog tells the admin "the customer will be notified with
+    // this reason" — so it has to actually reach them, not just admin_notes.
     await notifyCustomer(admin, quote.customer_id, "quote_rejected", {
+      service: quote.services?.name ?? "your request",
       reason: parsed.data.reason,
     });
 

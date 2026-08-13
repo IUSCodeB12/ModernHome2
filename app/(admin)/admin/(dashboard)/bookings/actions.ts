@@ -12,6 +12,40 @@ import {
 } from "@/lib/invoice/create";
 import type { TablesUpdate } from "@/lib/database.types";
 
+type Admin = Awaited<ReturnType<typeof import("@/lib/admin/guard").assertAdmin>>["admin"];
+
+/** "12 Smith St, Brunswick 3056" — omitted entirely if we don't hold one. */
+function formatAddress(booking: {
+  address_line1: string | null;
+  suburb: string | null;
+  postcode: string | null;
+}): string | null {
+  const locality = [booking.suburb, booking.postcode].filter(Boolean).join(" ");
+  const parts = [booking.address_line1, locality].filter(
+    (p): p is string => Boolean(p?.trim())
+  );
+  return parts.length ? parts.join(", ") : null;
+}
+
+/**
+ * What the customer actually owes, straight from the invoice.
+ *
+ * Null when there's nothing to bill (`ensureInvoiceForBooking` returns null for
+ * a job with no breakdown and no price). The templates drop the row rather than
+ * printing a confident $0.00.
+ */
+async function invoiceTotalCents(
+  admin: Admin,
+  bookingId: string
+): Promise<number | null> {
+  const { data } = await admin
+    .from("invoices")
+    .select("total_cents")
+    .eq("booking_id", bookingId)
+    .maybeSingle();
+  return data?.total_cents ?? null;
+}
+
 const schema = z.object({
   bookingId: z.string().min(1),
   toStatus: z.enum([
@@ -35,7 +69,7 @@ export async function updateBookingStatus(
     const { data: booking } = await admin
       .from("bookings")
       .select(
-        "id, status, customer_id, deposit_paid_at, slot_start, quote_requests(services(name))"
+        "id, status, customer_id, deposit_paid_at, slot_start, slot_end, address_line1, suburb, postcode, quote_requests(services(name))"
       )
       .eq("id", bookingId)
       .single();
@@ -62,18 +96,27 @@ export async function updateBookingStatus(
       await notifyCustomer(admin, booking.customer_id, "booking_confirmed", {
         service: serviceName,
         slotStart: booking.slot_start,
-      });
-    } else if (toStatus === "completed") {
-      await notifyCustomer(admin, booking.customer_id, "payment_due", {
-        service: serviceName,
+        slotEnd: booking.slot_end,
+        address: formatAddress(booking),
       });
     } else if (toStatus === "invoiced") {
-      // Auto-create the invoice from the accepted quote line items.
+      // Auto-create the invoice from the accepted quote line items, *then*
+      // ask for payment. This email used to fire on 'completed' — one step
+      // earlier, before any invoice existed — so it asked a customer to pay
+      // an amount it couldn't name, for a bill they couldn't yet open.
       await ensureInvoiceForBooking(admin, bookingId);
+      await notifyCustomer(admin, booking.customer_id, "payment_due", {
+        service: serviceName,
+        amountCents: await invoiceTotalCents(admin, bookingId),
+      });
     } else if (toStatus === "paid") {
+      // Read the total before marking paid — same figure either way, but it
+      // keeps the receipt independent of that write succeeding.
+      const amountCents = await invoiceTotalCents(admin, bookingId);
       await markInvoicePaidForBooking(admin, bookingId);
       await notifyCustomer(admin, booking.customer_id, "receipt_ready", {
         service: serviceName,
+        amountCents,
       });
     } else if (toStatus === "cancelled" && from !== "enquiry") {
       // Cancelling is reachable from every state, and until now told the
@@ -166,6 +209,7 @@ export async function rescheduleBooking(
     await notifyCustomer(admin, booking.customer_id, "reschedule_confirmed", {
       service: booking.quote_requests?.services?.name ?? "your job",
       slotStart,
+      slotEnd,
     });
 
     revalidatePath("/admin/bookings");

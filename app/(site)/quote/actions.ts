@@ -6,6 +6,7 @@ import { calculateDepositCents, calculateEstimate, type Answers } from "@/lib/qu
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, isSupabaseConfigured } from "@/lib/supabase/admin";
 import { isCustomService } from "@/lib/services/custom";
+import { notifyAdmin, notifyCustomer } from "@/lib/email/notify";
 
 const answerValue = z.union([
   z.string(),
@@ -170,6 +171,30 @@ export async function submitQuoteRequest(
       postcode: payload.contact.postcode,
     })
     .eq("id", user.id);
+
+  // Tell both sides. Until now a submitted request notified nobody: the
+  // customer got no acknowledgement, and the tradie only found out by opening
+  // the dashboard — which for a one-person business is how a lead goes cold.
+  //
+  // Awaited rather than fired-and-forgotten because this runs in a serverless
+  // function, where work outstanding when the response returns may never run.
+  // Both helpers swallow their own failures, so a mail outage can't cost us a
+  // quote that's already saved.
+  const emailData = {
+    service: service.name,
+    estimateLowCents: estimate?.low_cents ?? null,
+    estimateHighCents: estimate?.high_cents ?? null,
+    slotStart: slotStart.toISOString(),
+    slotEnd: slotEnd.toISOString(),
+  };
+  await Promise.all([
+    notifyCustomer(admin, user.id, "quote_received", emailData),
+    notifyAdmin(admin, "admin_new_quote", {
+      ...emailData,
+      customerName: payload.contact.fullName,
+      suburb: payload.contact.suburb,
+    }),
+  ]);
 
   return { ok: true, quoteRequestId: quoteRequest.id, bookingId: booking.id };
 }
