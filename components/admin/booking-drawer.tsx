@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { BookingEmails } from "@/components/admin/booking-emails";
 import { formatAud } from "@/lib/quote/estimate";
 import { BUSINESS_TIME_ZONE } from "@/lib/slots";
 import {
@@ -235,6 +236,16 @@ export function BookingDrawer({
                   </Button>
                 )}
               </div>
+
+              <Separator />
+
+              {/*
+                Keyed on status as well as id: moving a job is what triggers an
+                email, so a status change remounts this and refetches. Sends
+                run after the response (lib/email/background.ts), so a brand
+                new row can land a moment later — hence the Refresh control.
+              */}
+              <BookingEmails key={`${booking.id}:${booking.status}`} bookingId={booking.id} />
 
               <Separator />
 

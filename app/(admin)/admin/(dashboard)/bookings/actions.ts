@@ -165,6 +165,65 @@ export async function updateBookingStatus(
   });
 }
 
+export type BookingEmail = {
+  id: string;
+  template: string;
+  recipient: string;
+  status: "pending" | "sent" | "failed" | "skipped";
+  error: string | null;
+  createdAt: string;
+};
+
+/**
+ * Delivery history for one booking.
+ *
+ * Fetched when the drawer opens rather than joined into `getAdminBookings`,
+ * so the bookings list doesn't drag several log rows per job across the wire
+ * for records nobody has opened.
+ *
+ * Read with the session client, not the service-role one: `email_log` has an
+ * admin-only RLS policy, and this is exactly the read it was written for.
+ */
+export async function getBookingEmails(
+  bookingId: string
+): Promise<ActionResult<{ emails: BookingEmail[] }>> {
+  const parsed = z.string().min(1).safeParse(bookingId);
+  if (!parsed.success) return { ok: false, error: "Invalid request." };
+
+  if (!isSupabaseConfigured()) return { ok: true, data: { emails: [] } };
+
+  return adminAction(async ({ supabase }) => {
+    const { data, error } = await supabase
+      .from("email_log")
+      .select("id, template, recipient, status, error, created_at")
+      .eq("booking_id", parsed.data)
+      .order("created_at", { ascending: false });
+    // Deliberately *not* swallowed into an empty list. "We sent nothing" and
+    // "we can't tell you what we sent" are different answers, and showing the
+    // first when the second is true is how a tradie concludes a customer was
+    // never contacted. The panel surfaces this as an error instead.
+    if (error) {
+      console.error("[admin] could not read email_log", error);
+      throw new Error(
+        error.code === "PGRST205"
+          ? "Delivery log unavailable — the email_log migration hasn't been pushed."
+          : "Couldn't load delivery history."
+      );
+    }
+
+    return {
+      emails: (data ?? []).map((row) => ({
+        id: row.id,
+        template: row.template,
+        recipient: row.recipient,
+        status: row.status,
+        error: row.error,
+        createdAt: row.created_at,
+      })),
+    };
+  });
+}
+
 /** Assign (or clear) the installer for a booking. */
 export async function assignInstaller(
   input: { bookingId: string; installer: string }
