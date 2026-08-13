@@ -395,6 +395,63 @@ export type Database = {
           },
         ];
       };
+      email_log: {
+        Row: {
+          id: string;
+          template: string;
+          recipient: string;
+          status: Database["public"]["Enums"]["email_status"];
+          dedupe_key: string | null;
+          provider_id: string | null;
+          error: string | null;
+          booking_id: string | null;
+          quote_request_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          template: string;
+          recipient: string;
+          status?: Database["public"]["Enums"]["email_status"];
+          dedupe_key?: string | null;
+          provider_id?: string | null;
+          error?: string | null;
+          booking_id?: string | null;
+          quote_request_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          template?: string;
+          recipient?: string;
+          status?: Database["public"]["Enums"]["email_status"];
+          dedupe_key?: string | null;
+          provider_id?: string | null;
+          error?: string | null;
+          booking_id?: string | null;
+          quote_request_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "email_log_booking_id_fkey";
+            columns: ["booking_id"];
+            isOneToOne: false;
+            referencedRelation: "bookings";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "email_log_quote_request_id_fkey";
+            columns: ["quote_request_id"];
+            isOneToOne: false;
+            referencedRelation: "quote_requests";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       hero_slides: {
         Row: {
           id: string;
@@ -529,6 +586,7 @@ export type Database = {
     };
     Enums: {
       user_role: "customer" | "admin";
+      email_status: "pending" | "sent" | "failed" | "skipped";
       price_unit: "fixed" | "per_metre" | "per_hour";
       question_input_type:
         | "single_select"

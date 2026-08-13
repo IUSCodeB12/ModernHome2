@@ -92,32 +92,54 @@ export async function updateBookingStatus(
 
     const serviceName =
       booking.quote_requests?.services?.name ?? "your job";
+    // Keyed on the arrival window, not just the booking: bouncing a job
+    // booked -> approved -> booked used to re-send the confirmation each time,
+    // but re-confirming a window the customer already has is noise. Move the
+    // window and the key changes, so a genuine re-confirmation still lands.
     if (toStatus === "booked") {
-      await notifyCustomer(admin, booking.customer_id, "booking_confirmed", {
-        service: serviceName,
-        slotStart: booking.slot_start,
-        slotEnd: booking.slot_end,
-        address: formatAddress(booking),
-      });
+      await notifyCustomer(
+        admin,
+        booking.customer_id,
+        "booking_confirmed",
+        {
+          service: serviceName,
+          slotStart: booking.slot_start,
+          slotEnd: booking.slot_end,
+          address: formatAddress(booking),
+        },
+        {
+          bookingId,
+          dedupeKey: `booking_confirmed:${bookingId}:${booking.slot_start}`,
+        }
+      );
     } else if (toStatus === "invoiced") {
       // Auto-create the invoice from the accepted quote line items, *then*
       // ask for payment. This email used to fire on 'completed' — one step
       // earlier, before any invoice existed — so it asked a customer to pay
       // an amount it couldn't name, for a bill they couldn't yet open.
       await ensureInvoiceForBooking(admin, bookingId);
-      await notifyCustomer(admin, booking.customer_id, "payment_due", {
-        service: serviceName,
-        amountCents: await invoiceTotalCents(admin, bookingId),
-      });
+      // The amount is part of the key: re-issuing an invoice at a *different*
+      // total is news the customer needs, re-issuing the same one isn't.
+      const dueCents = await invoiceTotalCents(admin, bookingId);
+      await notifyCustomer(
+        admin,
+        booking.customer_id,
+        "payment_due",
+        { service: serviceName, amountCents: dueCents },
+        { bookingId, dedupeKey: `payment_due:${bookingId}:${dueCents}` }
+      );
     } else if (toStatus === "paid") {
       // Read the total before marking paid — same figure either way, but it
       // keeps the receipt independent of that write succeeding.
       const amountCents = await invoiceTotalCents(admin, bookingId);
       await markInvoicePaidForBooking(admin, bookingId);
-      await notifyCustomer(admin, booking.customer_id, "receipt_ready", {
-        service: serviceName,
-        amountCents,
-      });
+      await notifyCustomer(
+        admin,
+        booking.customer_id,
+        "receipt_ready",
+        { service: serviceName, amountCents },
+        { bookingId, dedupeKey: `receipt_ready:${bookingId}:${amountCents}` }
+      );
     } else if (toStatus === "cancelled" && from !== "enquiry") {
       // Cancelling is reachable from every state, and until now told the
       // customer nothing — including someone holding a confirmed arrival
@@ -125,10 +147,13 @@ export async function updateBookingStatus(
       // contact yet and the cancel is the tradie clearing a dead lead.
       // Quote rejection has its own email and updates bookings directly,
       // so it doesn't reach this branch and won't double up.
-      await notifyCustomer(admin, booking.customer_id, "booking_cancelled", {
-        service: serviceName,
-        slotStart: booking.slot_start,
-      });
+      await notifyCustomer(
+        admin,
+        booking.customer_id,
+        "booking_cancelled",
+        { service: serviceName, slotStart: booking.slot_start },
+        { bookingId, dedupeKey: `booking_cancelled:${bookingId}` }
+      );
     }
 
     revalidatePath("/admin/bookings");
@@ -206,11 +231,17 @@ export async function rescheduleBooking(
     }
     if (error) throw new Error(error.message);
 
-    await notifyCustomer(admin, booking.customer_id, "reschedule_confirmed", {
-      service: booking.quote_requests?.services?.name ?? "your job",
-      slotStart,
-      slotEnd,
-    });
+    await notifyCustomer(
+      admin,
+      booking.customer_id,
+      "reschedule_confirmed",
+      {
+        service: booking.quote_requests?.services?.name ?? "your job",
+        slotStart,
+        slotEnd,
+      },
+      { bookingId, dedupeKey: `reschedule_confirmed:${bookingId}:${slotStart}` }
+    );
 
     revalidatePath("/admin/bookings");
     revalidatePath("/admin/calendar");

@@ -84,10 +84,18 @@ export async function approveQuote(
     if (error) throw new Error(error.message);
 
     const moved = await moveBookingToQuoted(admin, quote.id);
-    await notifyCustomer(admin, quote.customer_id, "quote_ready", {
-      service: quote.services?.name,
-      amountCents: finalQuoteCents,
-    });
+    // Price is in the key: re-approving at the same number is a no-op the
+    // customer doesn't need to hear about, a new number is a new quote.
+    await notifyCustomer(
+      admin,
+      quote.customer_id,
+      "quote_ready",
+      { service: quote.services?.name, amountCents: finalQuoteCents },
+      {
+        quoteRequestId: quote.id,
+        dedupeKey: `quote_ready:${quote.id}:${finalQuoteCents}`,
+      }
+    );
 
     revalidatePath("/admin/quotes");
     revalidatePath("/admin/bookings");
@@ -127,10 +135,16 @@ export async function adjustQuote(
     if (error) throw new Error(error.message);
 
     const moved = await moveBookingToQuoted(admin, quote.id);
-    await notifyCustomer(admin, quote.customer_id, "quote_adjusted", {
-      service: quote.services?.name,
-      amountCents: totals.total_cents,
-    });
+    await notifyCustomer(
+      admin,
+      quote.customer_id,
+      "quote_adjusted",
+      { service: quote.services?.name, amountCents: totals.total_cents },
+      {
+        quoteRequestId: quote.id,
+        dedupeKey: `quote_adjusted:${quote.id}:${totals.total_cents}`,
+      }
+    );
 
     revalidatePath("/admin/quotes");
     revalidatePath("/admin/bookings");
@@ -166,10 +180,16 @@ export async function rejectQuote(
     await admin.from("bookings").update({ status: "cancelled" }).eq("quote_request_id", quote.id);
     // The reject dialog tells the admin "the customer will be notified with
     // this reason" — so it has to actually reach them, not just admin_notes.
-    await notifyCustomer(admin, quote.customer_id, "quote_rejected", {
-      service: quote.services?.name ?? "your request",
-      reason: parsed.data.reason,
-    });
+    await notifyCustomer(
+      admin,
+      quote.customer_id,
+      "quote_rejected",
+      {
+        service: quote.services?.name ?? "your request",
+        reason: parsed.data.reason,
+      },
+      { quoteRequestId: quote.id, dedupeKey: `quote_rejected:${quote.id}` }
+    );
 
     revalidatePath("/admin/quotes");
     revalidatePath("/admin/bookings");

@@ -176,10 +176,9 @@ export async function submitQuoteRequest(
   // customer got no acknowledgement, and the tradie only found out by opening
   // the dashboard — which for a one-person business is how a lead goes cold.
   //
-  // Awaited rather than fired-and-forgotten because this runs in a serverless
-  // function, where work outstanding when the response returns may never run.
-  // Both helpers swallow their own failures, so a mail outage can't cost us a
-  // quote that's already saved.
+  // Dispatched after the response (see lib/email/background.ts), so the
+  // customer sees their confirmation screen without waiting on Resend. Keyed
+  // on the request id so a retried submission can't double-send.
   const emailData = {
     service: service.name,
     estimateLowCents: estimate?.low_cents ?? null,
@@ -187,13 +186,22 @@ export async function submitQuoteRequest(
     slotStart: slotStart.toISOString(),
     slotEnd: slotEnd.toISOString(),
   };
+  const ids = { bookingId: booking.id, quoteRequestId: quoteRequest.id };
   await Promise.all([
-    notifyCustomer(admin, user.id, "quote_received", emailData),
-    notifyAdmin(admin, "admin_new_quote", {
-      ...emailData,
-      customerName: payload.contact.fullName,
-      suburb: payload.contact.suburb,
+    notifyCustomer(admin, user.id, "quote_received", emailData, {
+      ...ids,
+      dedupeKey: `quote_received:${quoteRequest.id}`,
     }),
+    notifyAdmin(
+      admin,
+      "admin_new_quote",
+      {
+        ...emailData,
+        customerName: payload.contact.fullName,
+        suburb: payload.contact.suburb,
+      },
+      { ...ids, dedupeKey: `admin_new_quote:${quoteRequest.id}` }
+    ),
   ]);
 
   return { ok: true, quoteRequestId: quoteRequest.id, bookingId: booking.id };

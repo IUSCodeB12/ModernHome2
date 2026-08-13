@@ -62,27 +62,39 @@ export async function respondToQuote(
   // alert that most needs to arrive on a phone.
   const service = quote.services?.name ?? "their job";
   const customerName = quote.profiles?.full_name ?? null;
+  const ids = { bookingId: booking.id, quoteRequestId: quote.id };
   if (decision === "accept") {
-    await notifyAdmin(admin, "admin_quote_accepted", {
-      service,
-      customerName,
-      amountCents: quote.final_quote_cents,
-      slotStart: booking.slot_start,
-      slotEnd: booking.slot_end,
-    });
-  } else {
-    await Promise.all([
-      notifyAdmin(admin, "admin_quote_declined", {
+    await notifyAdmin(
+      admin,
+      "admin_quote_accepted",
+      {
         service,
         customerName,
         amountCents: quote.final_quote_cents,
-      }),
-      // Confirm the cancellation back to the customer too — it's their paper
-      // trail, and it gives an accidental click a way back.
-      notifyCustomer(admin, booking.customer_id, "booking_cancelled", {
-        service,
         slotStart: booking.slot_start,
-      }),
+        slotEnd: booking.slot_end,
+      },
+      { ...ids, dedupeKey: `admin_quote_accepted:${booking.id}` }
+    );
+  } else {
+    await Promise.all([
+      notifyAdmin(
+        admin,
+        "admin_quote_declined",
+        { service, customerName, amountCents: quote.final_quote_cents },
+        { ...ids, dedupeKey: `admin_quote_declined:${booking.id}` }
+      ),
+      // Confirm the cancellation back to the customer too — it's their paper
+      // trail, and it gives an accidental click a way back. Shares a key with
+      // the admin-initiated cancel, so a decline followed by the tradie
+      // cancelling doesn't tell the customer twice.
+      notifyCustomer(
+        admin,
+        booking.customer_id,
+        "booking_cancelled",
+        { service, slotStart: booking.slot_start },
+        { ...ids, dedupeKey: `booking_cancelled:${booking.id}` }
+      ),
     ]);
   }
 
@@ -144,18 +156,32 @@ export async function requestReschedule(
   // Both halves of this were missing: the tradie was never told a reschedule
   // had been asked for (it only showed as a flag on the booking row), and the
   // `reschedule_requested` template existed but had no call site at all.
+  //
+  // Keyed on the *current* window: asking twice about the same slot acks once,
+  // but if we reschedule them and they're still unhappy, that's a new window
+  // and a genuinely new request.
   const service = quote.services?.name ?? "your job";
+  const ids = { bookingId: booking.id, quoteRequestId: quote.id };
+  const key = `${booking.id}:${booking.slot_start}`;
   await Promise.all([
-    notifyCustomer(admin, booking.customer_id, "reschedule_requested", {
-      service,
-      slotStart: booking.slot_start,
-    }),
-    notifyAdmin(admin, "admin_reschedule_requested", {
-      service,
-      customerName: quote.profiles?.full_name ?? null,
-      slotStart: booking.slot_start,
-      note: trimmedNote,
-    }),
+    notifyCustomer(
+      admin,
+      booking.customer_id,
+      "reschedule_requested",
+      { service, slotStart: booking.slot_start },
+      { ...ids, dedupeKey: `reschedule_requested:${key}` }
+    ),
+    notifyAdmin(
+      admin,
+      "admin_reschedule_requested",
+      {
+        service,
+        customerName: quote.profiles?.full_name ?? null,
+        slotStart: booking.slot_start,
+        note: trimmedNote,
+      },
+      { ...ids, dedupeKey: `admin_reschedule_requested:${key}` }
+    ),
   ]);
 
   revalidatePath(`/portal/${quoteId}`);
