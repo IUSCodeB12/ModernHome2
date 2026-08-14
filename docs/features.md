@@ -33,10 +33,23 @@ in `lib/<domain>/`. Server actions are colocated with their route as `actions.ts
 - **Admin:** `app/(admin)/.../services/{page,actions}.ts`, `components/admin/service-editor.tsx`
 
 ## Quote wizard
+Five steps: service → details → time → contact → review. Photo prompts are
+inline per question (`question-field.tsx`), not a step of their own, and email
+verification happens on the review step at confirm time rather than mid-flow.
 - **Routes:** `app/(site)/quote/{page,actions}.ts`
-- **UI:** `components/quote/*` — `wizard.tsx`, `step-{service,questions,photos,contact,slot,review}.tsx`, `photo-store.ts`
-- **Logic:** `lib/quote/{types,wizard-state,answers,estimate,image,demo-data}.ts`,
+- **UI:** `components/quote/*` — `wizard.tsx`, `step-{service,questions,slot,contact,review}.tsx`,
+  `question-field.tsx`, `photo-capture.tsx`, `photo-store.ts`, `inline-verify.tsx`,
+  `progress-rail.tsx`, `animated-price.tsx`
+- **Logic:** `lib/quote/{types,wizard-state,answers,estimate,image,demo-data,saved-contact}.ts`,
   `lib/slots.ts` (availability engine)
+- Drafts persist in `localStorage` for 7 days (`wizard-state.ts`); pending photo
+  blobs are in-memory only and do not survive a reload.
+- **Returning customers skip the contact form.** `getQuoteIdentity()` merges
+  `profiles` (name/phone/suburb/postcode, written back on every submit) with the
+  latest `bookings` row (street address, access notes — they're per-job columns,
+  not profile ones) into a one-tap "Use these details" card. Signed-in users get
+  a read-only email: the action ties the quote to the session user and never
+  stores a typed address.
 
 ## Bookings lifecycle (the big cross-cutting one)
 Enquiry → quote → accept → deposit → job → invoice → receipt.

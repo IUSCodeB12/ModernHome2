@@ -3,7 +3,9 @@
 /* eslint-disable @next/next/no-img-element -- public bucket URLs, no next/image domain config */
 
 import {
+  ArrowRight,
   Boxes,
+  Check,
   Flame,
   GalleryVerticalEnd,
   Lightbulb,
@@ -61,16 +63,17 @@ export function StepService({
             <button
               key={service.id}
               type="button"
+              aria-pressed={selected}
               onClick={() => onSelect(service)}
               className={cn(
-                "group relative overflow-hidden rounded-2xl border bg-card text-left transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-elev-2",
+                "group card-lift relative overflow-hidden rounded-2xl border bg-card text-left shadow-elev-1",
                 selected
                   ? "border-brand ring-1 ring-brand"
                   : "border-border hover:border-brand/40"
               )}
             >
               {/* Photo / branded fallback */}
-              <div className="relative h-32 overflow-hidden bg-[#1a1714]">
+              <div className="relative h-36 overflow-hidden bg-[#1a1714]">
                 {photo ? (
                   <img
                     src={photo}
@@ -115,13 +118,17 @@ export function StepService({
                 <span
                   aria-hidden
                   className={cn(
-                    "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border text-xs transition-colors duration-300",
+                    "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border transition-colors duration-300",
                     selected
                       ? "border-brand bg-brand text-brand-foreground"
-                      : "border-border text-transparent group-hover:border-brand/50"
+                      : "border-border text-muted-foreground group-hover:border-brand/50 group-hover:text-brand"
                   )}
                 >
-                  ✓
+                  {selected ? (
+                    <Check className="size-3.5" />
+                  ) : (
+                    <ArrowRight className="size-3.5" />
+                  )}
                 </span>
               </div>
             </button>

@@ -1,22 +1,20 @@
 "use client";
 
-import { useMemo } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { useEffect, useMemo, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Camera, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { isCustomService } from "@/lib/services/custom";
+import { AnimatedPrice } from "@/components/quote/animated-price";
+import { getPhotos } from "@/components/quote/photo-store";
 import {
-  calculateEstimate,
-  formatAud,
-  parseOptions,
-  type Answers,
-} from "@/lib/quote/estimate";
+  QuestionField,
+  type FormValues,
+} from "@/components/quote/question-field";
+import { calculateEstimate, type Answers } from "@/lib/quote/estimate";
 import type { ServiceWithQuestions } from "@/lib/quote/types";
-import { cn } from "@/lib/utils";
 
 function buildSchema(service: ServiceWithQuestions) {
   const shape: Record<string, z.ZodType> = {};
@@ -38,9 +36,11 @@ function buildSchema(service: ServiceWithQuestions) {
         shape[question.id] = z.boolean().default(false);
         break;
       case "text":
+        // Deliberately short: "Mount 2 shelves" is a complete answer, and the
+        // old 20-character floor blocked the catch-all service on real briefs.
         shape[question.id] = z
           .string()
-          .min(20, "A sentence or two helps us quote accurately")
+          .min(10, "A few more words, so we can price it properly")
           .max(2000, "That's a bit long — keep it under 2000 characters");
         break;
     }
@@ -48,16 +48,17 @@ function buildSchema(service: ServiceWithQuestions) {
   return z.object(shape);
 }
 
-type FormValues = Record<string, string | string[] | number | boolean>;
-
 export function StepQuestions({
   service,
   initialAnswers,
+  onAnswersChange,
   onBack,
   onNext,
 }: {
   service: ServiceWithQuestions;
   initialAnswers: Answers;
+  /** Streams in-progress answers up so the rail's price can track live. */
+  onAnswersChange: (answers: Answers) => void;
   onBack: () => void;
   onNext: (answers: Answers) => void;
 }) {
@@ -96,193 +97,103 @@ export function StepQuestions({
     [service, watched]
   );
 
+  // useWatch hands back a fresh object every change, so key the effect on the
+  // serialised values rather than the reference.
+  const watchedKey = JSON.stringify(watched);
+  useEffect(() => {
+    onAnswersChange(watched as Answers);
+    // watchedKey is the value-identity of `watched`; depending on the object
+    // itself would re-fire on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedKey]);
+
+  // Photo prompts are inline now, so "missing photos" is a nudge on Continue
+  // rather than a wall — one tap to proceed, no checkbox to hunt for.
+  // The photo store is module state, so a bump of this counter is how a change
+  // in it re-enters React and re-derives `missingPhotos` below.
+  const [, setPhotoVersion] = useState(0);
+  const [nudged, setNudged] = useState(false);
+  const missingPhotos = service.service_questions.filter(
+    (q) => q.requires_photo && getPhotos(q.id).length === 0
+  );
+
+  function submit(values: FormValues) {
+    if (missingPhotos.length > 0 && !nudged) {
+      setNudged(true);
+      return;
+    }
+    onNext(values as Answers);
+  }
+
   return (
-    <form
-      onSubmit={form.handleSubmit((values) => onNext(values as Answers))}
-      className="space-y-6"
-    >
-      <h2 className="text-lg font-semibold">{service.name} — job details</h2>
+    <form onSubmit={form.handleSubmit(submit)} className="space-y-4">
+      <div>
+        <h2 className="font-serif text-2xl tracking-tight">
+          Tell us about the job
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {service.name} — {service.service_questions.length}{" "}
+          {service.service_questions.length === 1 ? "question" : "questions"},
+          and your price updates as you go.
+        </p>
+      </div>
 
-      {service.service_questions.map((question) => {
-        const options = parseOptions(question.options);
-        const error = form.formState.errors[question.id]?.message as
-          | string
-          | undefined;
+      {service.service_questions.map((question, i) => (
+        <QuestionField
+          key={question.id}
+          question={question}
+          index={i}
+          form={form}
+          onPhotoChange={() => {
+            setPhotoVersion((v) => v + 1);
+            setNudged(false);
+          }}
+        />
+      ))}
 
-        return (
-          <div key={question.id} className="space-y-2">
-            <Label className="text-base">{question.question_text}</Label>
+      {nudged && missingPhotos.length > 0 && (
+        <div className="animate-enter-up rounded-xl border border-brand/40 bg-brand/10 p-4">
+          <p className="flex items-center gap-2 text-sm font-medium">
+            <Camera className="size-4 text-brand" />
+            A photo would lock this price in
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Without one we&apos;ll confirm the final figure after we&apos;ve seen
+            the space. Happy either way — your spot is still held.
+          </p>
+        </div>
+      )}
 
-            {question.input_type === "single_select" && (
-              <Controller
-                control={form.control}
-                name={question.id}
-                render={({ field }) => (
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {options.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => field.onChange(option.value)}
-                        className={cn(
-                          "flex min-h-11 items-center justify-between rounded-lg border px-3 py-2 text-sm transition-colors",
-                          field.value === option.value
-                            ? "border-primary bg-primary text-primary-foreground"
-                            : "hover:border-foreground/30"
-                        )}
-                      >
-                        <span>{option.label}</span>
-                        {option.price_modifier_cents ? (
-                          <span
-                            className={cn(
-                              "text-xs",
-                              field.value === option.value
-                                ? "text-primary-foreground/80"
-                                : "text-muted-foreground"
-                            )}
-                          >
-                            {option.price_modifier_cents > 0 ? "+" : "−"}
-                            {formatAud(Math.abs(option.price_modifier_cents))}
-                          </span>
-                        ) : option.price_modifier_pct ? (
-                          <span className="text-xs text-muted-foreground">
-                            +{option.price_modifier_pct}%
-                          </span>
-                        ) : null}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              />
-            )}
-
-            {question.input_type === "multi_select" && (
-              <Controller
-                control={form.control}
-                name={question.id}
-                render={({ field }) => {
-                  const selected = (field.value as string[]) ?? [];
-                  return (
-                    <div className="flex flex-wrap gap-2">
-                      {options.map((option) => {
-                        const isOn = selected.includes(option.value);
-                        return (
-                          <button
-                            key={option.value}
-                            type="button"
-                            onClick={() =>
-                              field.onChange(
-                                isOn
-                                  ? selected.filter((v) => v !== option.value)
-                                  : [...selected, option.value]
-                              )
-                            }
-                            className={cn(
-                              "min-h-11 rounded-full border px-4 text-sm transition-colors",
-                              isOn
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "hover:border-foreground/30"
-                            )}
-                          >
-                            {option.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  );
-                }}
-              />
-            )}
-
-            {question.input_type === "text" && (
-              <Textarea
-                rows={5}
-                placeholder="Tell us what you'd like done, where it is in the house, and anything we should know about access or finish."
-                {...form.register(question.id)}
-              />
-            )}
-
-            {question.input_type === "number" && (
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  inputMode="decimal"
-                  className="max-w-32"
-                  {...form.register(question.id)}
-                />
-                {service.price_unit === "per_metre" && (
-                  <span className="text-sm text-muted-foreground">metres</span>
-                )}
-              </div>
-            )}
-
-            {question.input_type === "boolean" && (
-              <Controller
-                control={form.control}
-                name={question.id}
-                render={({ field }) => (
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={field.value === true}
-                    onClick={() => field.onChange(!field.value)}
-                    className={cn(
-                      "flex min-h-11 w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition-colors sm:w-auto sm:min-w-64 sm:gap-6",
-                      field.value === true
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "hover:border-foreground/30"
-                    )}
-                  >
-                    <span>{options[0]?.label ?? "Yes"}</span>
-                    <span
-                      className={cn(
-                        "text-xs",
-                        field.value === true
-                          ? "text-primary-foreground/80"
-                          : "text-muted-foreground"
-                      )}
-                    >
-                      {options[0]?.price_modifier_cents
-                        ? `+${formatAud(options[0].price_modifier_cents)}`
-                        : field.value === true
-                          ? "Added"
-                          : "Tap to add"}
-                    </span>
-                  </button>
-                )}
-              />
-            )}
-
-            {error && <p className="text-sm text-destructive">{error}</p>}
-          </div>
-        );
-      })}
-
-      {/* Live estimate */}
-      <div className="sticky bottom-0 -mx-4 border-t bg-background/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:rounded-lg sm:border sm:bg-muted/40">
-        {custom ? (
-          <div className="flex items-center justify-between gap-4">
-            <span className="text-sm text-muted-foreground">Your price</span>
+      {/* Sticky action bar — carries the running price on mobile, where the
+          rail at the top of the page has scrolled away. */}
+      <div className="sticky bottom-0 -mx-4 border-t border-border bg-background/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:rounded-2xl sm:border sm:bg-muted/40 sm:px-4">
+        <div className="flex items-center justify-between gap-4">
+          <span className="text-sm text-muted-foreground">
+            {custom ? "Your price" : "Estimated price"}
+          </span>
+          {custom ? (
             <span className="text-right text-sm font-medium">
               We&apos;ll review and send a fixed price
             </span>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Estimated price</span>
+          ) : (
             <span className="text-lg font-semibold">
-              {formatAud(estimate.low_cents)} – {formatAud(estimate.high_cents)}
+              <AnimatedPrice cents={estimate.low_cents} /> –{" "}
+              <AnimatedPrice cents={estimate.high_cents} />
             </span>
-          </div>
-        )}
+          )}
+        </div>
         <div className="mt-3 flex gap-3">
-          <Button type="button" variant="outline" onClick={onBack} className="flex-1">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onBack}
+            className="flex-1"
+          >
             Back
           </Button>
           <Button type="submit" className="flex-1">
-            Continue
+            {nudged && missingPhotos.length > 0 ? "Continue anyway" : "Continue"}
+            <ArrowRight />
           </Button>
         </div>
       </div>

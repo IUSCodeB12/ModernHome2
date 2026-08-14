@@ -203,5 +203,7 @@ export function getDemoWizardData(): QuoteWizardData {
     busy: [],
     photos: {},
     configured: false,
+    // No session in demo mode, so there's nothing to fast-track.
+    identity: { email: null, contact: null },
   };
 }

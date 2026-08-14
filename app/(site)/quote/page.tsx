@@ -1,7 +1,9 @@
 import { addDays } from "date-fns";
+import { Clock, Save, Wallet } from "lucide-react";
 import { QuoteWizard } from "@/components/quote/wizard";
 import { getDemoWizardData } from "@/lib/quote/demo-data";
 import { getServicePhotos } from "@/lib/services/data";
+import { getQuoteIdentity } from "@/lib/quote/saved-contact";
 import type { QuoteWizardData } from "@/lib/quote/types";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, isSupabaseConfigured } from "@/lib/supabase/admin";
@@ -21,7 +23,7 @@ async function getWizardData(): Promise<QuoteWizardData> {
 
   const supabase = await createClient();
 
-  const [servicesRes, rulesRes, blockedRes, photos] = await Promise.all([
+  const [servicesRes, rulesRes, blockedRes, photos, identity] = await Promise.all([
     supabase
       .from("services")
       .select("*, service_questions(*)")
@@ -33,6 +35,7 @@ async function getWizardData(): Promise<QuoteWizardData> {
       .select("date")
       .gte("date", new Date().toISOString().slice(0, 10)),
     getServicePhotos(),
+    getQuoteIdentity(),
   ]);
 
   // Busy intervals need the service role (customers can only read their own
@@ -63,6 +66,7 @@ async function getWizardData(): Promise<QuoteWizardData> {
     busy,
     photos,
     configured: true,
+    identity,
   };
 }
 
@@ -78,9 +82,23 @@ export default async function QuotePage() {
         Let&apos;s price your job.
       </h1>
       <p className="mt-4 max-w-md text-base text-muted-foreground">
-        Answer a few questions and lock in a 2-hour arrival window — about three
-        minutes, no callout fee.
+        Answer a few questions and lock in a 2-hour arrival window. Your price
+        updates as you go — no callout fee, no card needed.
       </p>
+      <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          <Clock className="size-4 text-brand" />
+          About 2 minutes
+        </span>
+        <span className="flex items-center gap-1.5">
+          <Wallet className="size-4 text-brand" />
+          Nothing to pay today
+        </span>
+        <span className="flex items-center gap-1.5">
+          <Save className="size-4 text-brand" />
+          Saved as you go
+        </span>
+      </div>
       <div className="mt-10">
         <QuoteWizard data={data} />
       </div>

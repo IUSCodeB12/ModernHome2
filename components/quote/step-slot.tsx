@@ -2,15 +2,21 @@
 
 import { useMemo, useState } from "react";
 import { formatInTimeZone } from "date-fns-tz";
+import { ArrowRight, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  BUSINESS_TIME_ZONE,
-  getOpenSlots,
-  type OpenSlot,
-} from "@/lib/slots";
+import { BUSINESS_TIME_ZONE, getOpenSlots, type OpenSlot } from "@/lib/slots";
 import type { QuoteWizardData } from "@/lib/quote/types";
 import type { SlotSelection } from "@/lib/quote/wizard-state";
 import { cn } from "@/lib/utils";
+
+function toSelection(slot: OpenSlot): SlotSelection {
+  return {
+    start: slot.start.toISOString(),
+    end: slot.end.toISOString(),
+    label: slot.label,
+    localDate: slot.localDate,
+  };
+}
 
 export function StepSlot({
   data,
@@ -50,20 +56,19 @@ export function StepSlot({
   const [error, setError] = useState<string | null>(null);
 
   const daySlots = days.find(([date]) => date === selectedDate)?.[1] ?? [];
+  const earliest = slots[0] ?? null;
 
   if (days.length === 0) {
     return (
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Pick a time</h2>
+        <h2 className="font-serif text-2xl tracking-tight">Pick a time</h2>
         <p className="text-sm text-muted-foreground">
-          No open slots in the next two weeks — submit without a time and
-          we&apos;ll contact you to arrange one.
+          No open slots in the next two weeks — go back and submit without a time
+          and we&apos;ll contact you to arrange one.
         </p>
-        <div className="flex gap-3">
-          <Button type="button" variant="outline" onClick={onBack} className="flex-1">
-            Back
-          </Button>
-        </div>
+        <Button type="button" variant="outline" onClick={onBack} className="w-full">
+          Back
+        </Button>
       </div>
     );
   }
@@ -71,78 +76,110 @@ export function StepSlot({
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold">Pick an arrival window</h2>
+        <h2 className="font-serif text-2xl tracking-tight">
+          When suits you?
+        </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Times shown for Melbourne. We&apos;ll arrive within your 2-hour window.
+          Melbourne times. We&apos;ll arrive inside your 2-hour window.
         </p>
       </div>
 
-      {/* Horizontal day picker */}
-      <div className="-mx-4 overflow-x-auto px-4 pb-1">
-        <div className="flex w-max gap-2">
-          {days.map(([date, list]) => {
-            const d = list[0].start;
+      {/* One-tap shortcut — most people just want the soonest slot. */}
+      {earliest && (
+        <button
+          type="button"
+          onClick={() => onNext(toSelection(earliest))}
+          className={cn(
+            "flex w-full items-center gap-3 rounded-2xl border border-brand/40 bg-brand/10 p-4 text-left",
+            "transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-brand hover:shadow-elev-2 active:scale-[0.99]"
+          )}
+        >
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand text-brand-foreground">
+            <Zap className="size-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-medium">Earliest available</span>
+            <span className="block truncate text-sm text-muted-foreground">
+              {formatInTimeZone(earliest.start, BUSINESS_TIME_ZONE, "EEEE d MMM")}
+              , {earliest.label}
+            </span>
+          </span>
+          <ArrowRight className="size-4 shrink-0 text-brand" />
+        </button>
+      )}
+
+      <div className="rounded-2xl border border-border bg-card p-4 shadow-elev-1 sm:p-5">
+        <p className="text-sm font-medium">Or choose a day</p>
+
+        <div className="-mx-4 mt-3 overflow-x-auto px-4 pb-1 sm:-mx-5 sm:px-5">
+          <div className="flex w-max gap-2">
+            {days.map(([date, list]) => {
+              const d = list[0].start;
+              const on = selectedDate === date;
+              return (
+                <button
+                  key={date}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => {
+                    setSelectedDate(date);
+                    setError(null);
+                  }}
+                  className={cn(
+                    "flex min-w-[4.25rem] flex-col items-center rounded-xl border px-3 py-2.5",
+                    "transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.97]",
+                    on
+                      ? "border-brand bg-brand text-brand-foreground shadow-elev-1"
+                      : "border-border hover:border-brand/40 hover:bg-accent/40"
+                  )}
+                >
+                  <span className="text-[0.7rem] uppercase tracking-wide opacity-70">
+                    {formatInTimeZone(d, BUSINESS_TIME_ZONE, "EEE")}
+                  </span>
+                  <span className="text-xl font-semibold tabular-nums">
+                    {formatInTimeZone(d, BUSINESS_TIME_ZONE, "d")}
+                  </span>
+                  <span className="text-[0.7rem] opacity-70">
+                    {formatInTimeZone(d, BUSINESS_TIME_ZONE, "MMM")}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          {daySlots.map((slot) => {
+            const on = selected?.start === slot.start.toISOString();
             return (
               <button
-                key={date}
+                key={slot.start.toISOString()}
                 type="button"
+                aria-pressed={on}
                 onClick={() => {
-                  setSelectedDate(date);
+                  setSelected(toSelection(slot));
                   setError(null);
                 }}
                 className={cn(
-                  "flex min-w-16 flex-col items-center rounded-xl border px-3 py-2 transition-colors",
-                  selectedDate === date
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "hover:border-foreground/30"
+                  "min-h-12 rounded-xl border text-sm font-medium",
+                  "transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98]",
+                  on
+                    ? "border-brand bg-brand text-brand-foreground shadow-elev-1"
+                    : "border-border hover:border-brand/40 hover:bg-accent/40"
                 )}
               >
-                <span className="text-xs uppercase opacity-70">
-                  {formatInTimeZone(d, BUSINESS_TIME_ZONE, "EEE")}
-                </span>
-                <span className="text-lg font-semibold">
-                  {formatInTimeZone(d, BUSINESS_TIME_ZONE, "d")}
-                </span>
-                <span className="text-xs opacity-70">
-                  {formatInTimeZone(d, BUSINESS_TIME_ZONE, "MMM")}
-                </span>
+                {slot.label}
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Slot buttons */}
-      <div className="grid grid-cols-2 gap-2">
-        {daySlots.map((slot) => {
-          const isSelected = selected?.start === slot.start.toISOString();
-          return (
-            <button
-              key={slot.start.toISOString()}
-              type="button"
-              onClick={() => {
-                setSelected({
-                  start: slot.start.toISOString(),
-                  end: slot.end.toISOString(),
-                  label: slot.label,
-                  localDate: slot.localDate,
-                });
-                setError(null);
-              }}
-              className={cn(
-                "min-h-11 rounded-lg border text-sm font-medium transition-colors",
-                isSelected
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "hover:border-foreground/30"
-              )}
-            >
-              {slot.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
 
       <div className="flex gap-3">
         <Button type="button" variant="outline" onClick={onBack} className="flex-1">
@@ -159,7 +196,7 @@ export function StepSlot({
             onNext(selected);
           }}
         >
-          Continue
+          Continue <ArrowRight />
         </Button>
       </div>
     </div>

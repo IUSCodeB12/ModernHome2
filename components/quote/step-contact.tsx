@@ -1,24 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CheckCircle2 } from "lucide-react";
+import { ArrowRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { OtpInput } from "@/components/auth/otp-input";
-import { ResendTimer } from "@/components/auth/resend-timer";
-import { createClient } from "@/lib/supabase/client";
-import type { ContactDetails } from "@/lib/quote/wizard-state";
+import { SavedDetails } from "@/components/quote/saved-details";
+import { isContactComplete, type ContactDetails } from "@/lib/quote/wizard-state";
 
 const contactSchema = z.object({
+  email: z.string().regex(/^\S+@\S+\.\S+$/, "Enter a valid email address"),
   fullName: z.string().min(2, "Enter your name"),
-  phone: z
-    .string()
-    .regex(/^[\d\s+()-]{8,}$/, "Enter a valid phone number"),
+  phone: z.string().regex(/^[\d\s+()-]{8,}$/, "Enter a valid phone number"),
   addressLine1: z.string().min(3, "Enter your street address"),
   suburb: z.string().min(2, "Enter your suburb"),
   postcode: z.string().regex(/^\d{4}$/, "4-digit postcode"),
@@ -27,292 +24,225 @@ const contactSchema = z.object({
 
 type ContactForm = z.infer<typeof contactSchema>;
 
-type AuthPhase = "loading" | "signedOut" | "codeSent" | "signedIn";
-
-function InlineAuth({
-  email,
-  setEmail,
-  configured,
-  onSignedIn,
+function Field({
+  id,
+  label,
+  hint,
+  error,
+  children,
 }: {
-  email: string;
-  setEmail: (v: string) => void;
-  configured: boolean;
-  onSignedIn: (email: string) => void;
+  id: string;
+  label: string;
+  hint?: string;
+  error?: string;
+  children: React.ReactNode;
 }) {
-  const [phase, setPhase] = useState<AuthPhase>("loading");
-  const [code, setCode] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!configured) {
-      setPhase("signedOut");
-      return;
-    }
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user?.email) {
-        onSignedIn(user.email);
-        setPhase("signedIn");
-      } else {
-        setPhase("signedOut");
-      }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
-  }, []);
-
-  async function sendCode() {
-    setError(null);
-    if (!/^\S+@\S+\.\S+$/.test(email)) {
-      setError("Enter a valid email address");
-      return;
-    }
-    if (!configured) {
-      // Demo mode — skip real auth so the wizard can be exercised locally.
-      onSignedIn(email);
-      setPhase("signedIn");
-      return;
-    }
-    setBusy(true);
-    try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: { shouldCreateUser: true },
-      });
-      if (error) setError(error.message);
-      else setPhase("codeSent");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function verifyCode(token = code) {
-    setError(null);
-    setBusy(true);
-    try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.verifyOtp({
-        email,
-        token: token.trim(),
-        type: "email",
-      });
-      if (error) {
-        setError("That code didn't match — check the email and try again.");
-      } else {
-        onSignedIn(email);
-        setPhase("signedIn");
-      }
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  if (phase === "loading") {
-    return <p className="text-sm text-muted-foreground">Checking sign-in…</p>;
-  }
-
-  if (phase === "signedIn") {
-    return (
-      <div className="flex items-center gap-2 rounded-lg border border-green-600/30 bg-green-600/10 px-3 py-2 text-sm">
-        <CheckCircle2 className="size-4 text-green-600" />
-        <span>
-          Signed in as <span className="font-medium">{email}</span>
-        </span>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-3 rounded-xl border p-4">
-      <p className="text-sm font-medium">
-        Your email — we&apos;ll send a 6-digit code so your quote is saved to
-        your account. No password needed.
-      </p>
-      <div className="space-y-2">
-        <Label htmlFor="wizard-email">Email</Label>
-        <Input
-          id="wizard-email"
-          type="email"
-          autoComplete="email"
-          placeholder="you@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={phase === "codeSent"}
-        />
-      </div>
-      {phase === "codeSent" ? (
-        <div className="space-y-3">
-          <Label>Enter the 6-digit code we emailed you</Label>
-          <OtpInput
-            value={code}
-            onChange={setCode}
-            onComplete={(v) => verifyCode(v)}
-            disabled={busy}
-            invalid={!!error}
-          />
-          {busy && <p className="text-sm text-muted-foreground">Checking…</p>}
-          <ResendTimer onResend={sendCode} disabled={busy} />
-          <button
-            type="button"
-            className="mx-auto block text-xs text-muted-foreground underline"
-            onClick={() => {
-              setCode("");
-              setError(null);
-              setPhase("signedOut");
-            }}
-          >
-            Use a different email
-          </button>
-        </div>
-      ) : (
-        <Button type="button" onClick={sendCode} disabled={busy} className="w-full">
-          {busy ? "Sending…" : "Send code"}
-        </Button>
+    <div className="space-y-1.5">
+      <Label htmlFor={id}>
+        {label}
+        {hint && (
+          <span className="ml-1 font-normal text-muted-foreground">{hint}</span>
+        )}
+      </Label>
+      {children}
+      {error && (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
       )}
-      {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );
 }
 
+/**
+ * Contact details — no sign-in wall.
+ *
+ * Verification used to sit here, mid-flow: three screens in, before the
+ * customer had seen a time or a final price, they were sent to their inbox for
+ * a 6-digit code. Now they finish the booking first and verify once, on the
+ * review step, at the point they're actually committing.
+ */
 export function StepContact({
   initial,
-  configured,
+  saved,
+  signedInEmail,
   onBack,
   onNext,
 }: {
   initial: ContactDetails;
-  configured: boolean;
+  /** On-file details for a signed-in returning customer, else null. */
+  saved: ContactDetails | null;
+  /** Session email when already signed in — the quote is tied to this account. */
+  signedInEmail: string | null;
   onBack: () => void;
-  onNext: (contact: ContactDetails, signedIn: boolean) => void;
+  onNext: (contact: ContactDetails) => void;
 }) {
-  const [email, setEmail] = useState(initial.email);
-  const [signedIn, setSignedIn] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
+  // Anything typed into this draft outranks the account record — the customer
+  // has already told us this booking is different.
+  const draftStarted = initial.fullName.trim().length > 0;
+  const canFastPath = !draftStarted && !!saved && isContactComplete(saved);
+  const [editing, setEditing] = useState(!canFastPath);
+
+  const prefill = draftStarted ? initial : (saved ?? initial);
 
   const form = useForm<ContactForm>({
     resolver: zodResolver(contactSchema as never),
     defaultValues: {
-      fullName: initial.fullName,
-      phone: initial.phone,
-      addressLine1: initial.addressLine1,
-      suburb: initial.suburb,
-      postcode: initial.postcode,
-      accessNotes: initial.accessNotes,
+      // Signed in? The session address is authoritative and the field is
+      // rendered read-only, so seed it here or validation dead-ends with
+      // nothing on screen to fix.
+      email: signedInEmail ?? prefill.email,
+      fullName: prefill.fullName,
+      phone: prefill.phone,
+      addressLine1: prefill.addressLine1,
+      suburb: prefill.suburb,
+      postcode: prefill.postcode,
+      accessNotes: prefill.accessNotes,
     },
     mode: "onTouched",
   });
 
+  const errors = form.formState.errors;
+
+  if (!editing && saved) {
+    return (
+      <SavedDetails
+        saved={saved}
+        onUse={() => onNext(saved)}
+        onEdit={() => setEditing(true)}
+        onBack={onBack}
+      />
+    );
+  }
+
   return (
     <form
-      onSubmit={form.handleSubmit((values) => {
-        if (!signedIn) {
-          setAuthError("Please verify your email first — it only takes a moment.");
-          return;
-        }
-        onNext({ ...values, accessNotes: values.accessNotes ?? "", email }, signedIn);
-      })}
+      onSubmit={form.handleSubmit((values) =>
+        onNext({ ...values, accessNotes: values.accessNotes ?? "" })
+      )}
       className="space-y-5"
     >
-      <h2 className="text-lg font-semibold">Your details</h2>
-
-      <InlineAuth
-        email={email}
-        setEmail={setEmail}
-        configured={configured}
-        onSignedIn={(verifiedEmail) => {
-          setEmail(verifiedEmail);
-          setSignedIn(true);
-          setAuthError(null);
-        }}
-      />
-      {authError && <p className="text-sm text-destructive">{authError}</p>}
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="fullName">Full name</Label>
-          <Input id="fullName" autoComplete="name" {...form.register("fullName")} />
-          {form.formState.errors.fullName && (
-            <p className="text-sm text-destructive">
-              {form.formState.errors.fullName.message}
-            </p>
-          )}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="phone">Phone</Label>
-          <Input
-            id="phone"
-            type="tel"
-            autoComplete="tel"
-            placeholder="0400 000 000"
-            {...form.register("phone")}
-          />
-          {form.formState.errors.phone && (
-            <p className="text-sm text-destructive">
-              {form.formState.errors.phone.message}
-            </p>
-          )}
-        </div>
+      <div>
+        <h2 className="font-serif text-2xl tracking-tight">Where are we going?</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {canFastPath
+            ? "Filled in from your last booking — change whatever's different."
+            : "Last details — then you're done."}
+        </p>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="addressLine1">Street address</Label>
-        <Input
-          id="addressLine1"
-          autoComplete="address-line1"
-          {...form.register("addressLine1")}
-        />
-        {form.formState.errors.addressLine1 && (
-          <p className="text-sm text-destructive">
-            {form.formState.errors.addressLine1.message}
-          </p>
+      <div className="space-y-4 rounded-2xl border border-border bg-card p-4 shadow-elev-1 sm:p-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field id="fullName" label="Full name" error={errors.fullName?.message}>
+            <Input
+              id="fullName"
+              autoComplete="name"
+              aria-invalid={!!errors.fullName}
+              {...form.register("fullName")}
+            />
+          </Field>
+          <Field id="phone" label="Phone" error={errors.phone?.message}>
+            <Input
+              id="phone"
+              type="tel"
+              autoComplete="tel"
+              placeholder="0400 000 000"
+              aria-invalid={!!errors.phone}
+              {...form.register("phone")}
+            />
+          </Field>
+        </div>
+
+        {signedInEmail ? (
+          // The booking is tied to the signed-in account and every notification
+          // goes to it, so an editable field here would be a promise we don't
+          // keep — the typed address is never stored or used.
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-sm">
+            <ShieldCheck className="size-4 shrink-0 text-brand" />
+            <span className="min-w-0">
+              Signed in as{" "}
+              <span className="font-medium">{signedInEmail}</span> — your quote
+              lands there.
+            </span>
+          </div>
+        ) : (
+          <Field
+            id="email"
+            label="Email"
+            hint="— your quote and confirmation land here"
+            error={errors.email?.message}
+          >
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              aria-invalid={!!errors.email}
+              {...form.register("email")}
+            />
+          </Field>
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="suburb">Suburb</Label>
-          <Input id="suburb" autoComplete="address-level2" {...form.register("suburb")} />
-          {form.formState.errors.suburb && (
-            <p className="text-sm text-destructive">
-              {form.formState.errors.suburb.message}
-            </p>
-          )}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="postcode">Postcode</Label>
+      <div className="space-y-4 rounded-2xl border border-border bg-card p-4 shadow-elev-1 sm:p-5">
+        <Field
+          id="addressLine1"
+          label="Street address"
+          error={errors.addressLine1?.message}
+        >
           <Input
-            id="postcode"
-            inputMode="numeric"
-            maxLength={4}
-            {...form.register("postcode")}
+            id="addressLine1"
+            autoComplete="address-line1"
+            aria-invalid={!!errors.addressLine1}
+            {...form.register("addressLine1")}
           />
-          {form.formState.errors.postcode && (
-            <p className="text-sm text-destructive">
-              {form.formState.errors.postcode.message}
-            </p>
-          )}
+        </Field>
+
+        <div className="grid grid-cols-3 gap-4">
+          <div className="col-span-2">
+            <Field id="suburb" label="Suburb" error={errors.suburb?.message}>
+              <Input
+                id="suburb"
+                autoComplete="address-level2"
+                aria-invalid={!!errors.suburb}
+                {...form.register("suburb")}
+              />
+            </Field>
+          </div>
+          <Field id="postcode" label="Postcode" error={errors.postcode?.message}>
+            <Input
+              id="postcode"
+              inputMode="numeric"
+              maxLength={4}
+              autoComplete="postal-code"
+              aria-invalid={!!errors.postcode}
+              {...form.register("postcode")}
+            />
+          </Field>
         </div>
+
+        <Field id="accessNotes" label="Access notes" hint="(optional)">
+          <Textarea
+            id="accessNotes"
+            rows={3}
+            placeholder="Parking, stairs, pets, gate codes…"
+            {...form.register("accessNotes")}
+          />
+        </Field>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="accessNotes">
-          Access notes <span className="text-muted-foreground">(optional)</span>
-        </Label>
-        <Textarea
-          id="accessNotes"
-          placeholder="Parking, stairs, pets, gate codes…"
-          {...form.register("accessNotes")}
-        />
-      </div>
+      <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+        <ShieldCheck className="size-3.5 text-brand" />
+        Used only to quote and complete your job — never shared.
+      </p>
 
       <div className="flex gap-3">
         <Button type="button" variant="outline" onClick={onBack} className="flex-1">
           Back
         </Button>
         <Button type="submit" className="flex-1">
-          Continue
+          Review <ArrowRight />
         </Button>
       </div>
     </form>
