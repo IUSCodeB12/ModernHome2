@@ -3,7 +3,7 @@ import { createAdminClient, isSupabaseConfigured } from "@/lib/supabase/admin";
 import { demoQuotes, type AdminQuoteRow } from "@/lib/admin/demo";
 
 const QUOTE_SELECT =
-  "*, services(name, price_unit, base_price_cents, service_questions(*)), profiles(full_name, phone, suburb, postcode), bookings(*)";
+  "*, services(name, slug, price_unit, base_price_cents, service_questions(*)), profiles(full_name, phone, suburb, postcode), bookings(*)";
 
 export async function getAdminQuotes(): Promise<{
   quotes: AdminQuoteRow[];

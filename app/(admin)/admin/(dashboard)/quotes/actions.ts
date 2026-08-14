@@ -17,13 +17,27 @@ const idSchema = z.object({
 const lineItemSchema = z.object({
   description: z.string().min(1, "Description required").max(200),
   quantity: z.coerce.number().positive().max(1000),
-  unit_price_cents: z.coerce.number().int().min(0).max(100_000_000),
+  // Negative unit prices are legitimate — discounts and goodwill adjustments
+  // are ordinary quote lines. The total is what has to stay above zero, and
+  // that's checked across the whole set below.
+  unit_price_cents: z.coerce
+    .number()
+    .int()
+    .min(-100_000_000)
+    .max(100_000_000),
 });
 
 const adjustSchema = z.object({
   quoteId: z.string().min(1),
   lineItems: z.array(lineItemSchema).min(1, "Add at least one line item"),
-});
+}).refine(
+  (v) =>
+    v.lineItems.reduce(
+      (sum, it) => sum + Math.round(it.quantity * it.unit_price_cents),
+      0
+    ) > 0,
+  { message: "The quote total has to be more than $0.", path: ["lineItems"] }
+);
 
 const rejectSchema = z.object({
   quoteId: z.string().min(1),

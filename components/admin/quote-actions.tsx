@@ -2,10 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -16,7 +15,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { calcInvoiceTotals, normalizeLineItems } from "@/lib/invoice/calc";
+import {
+  QuotePriceBuilder,
+  draftsToItems,
+  initialDrafts,
+  type Draft,
+} from "@/components/admin/quote-price-builder";
+import type { LineItem } from "@/lib/invoice/calc";
 import { formatAud } from "@/lib/quote/estimate";
 import {
   adjustQuote,
@@ -24,23 +29,20 @@ import {
   rejectQuote,
 } from "@/app/(admin)/admin/(dashboard)/quotes/actions";
 
-type Draft = { description: string; quantity: string; unit_price_cents: string };
-
-function centsToInput(cents: number): string {
-  return (cents / 100).toFixed(2);
-}
-
 export function QuoteActions({
   quoteId,
   status,
   estimateMidpointCents,
-  hasCustomQuote = false,
+  serviceSlug = null,
+  existingLineItems = [],
 }: {
   quoteId: string;
   status: string;
   estimateMidpointCents: number;
-  /** True when a custom line-item quote already exists on this request. */
-  hasCustomQuote?: boolean;
+  /** Drives which starter breakdown the price builder offers. */
+  serviceSlug?: string | null;
+  /** Any line-item quote already saved on this request. */
+  existingLineItems?: LineItem[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -48,19 +50,15 @@ export function QuoteActions({
   const [replaceOpen, setReplaceOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [reason, setReason] = useState("");
-  const [items, setItems] = useState<Draft[]>([
-    { description: "Labour & installation", quantity: "1", unit_price_cents: centsToInput(estimateMidpointCents) },
-  ]);
+  const [items, setItems] = useState<Draft[]>(() =>
+    initialDrafts(existingLineItems, serviceSlug, estimateMidpointCents)
+  );
 
   const decided = status === "rejected" || status === "expired";
   const canApproveAsIs = estimateMidpointCents > 0;
+  const hasCustomQuote = existingLineItems.length > 0;
 
-  const parsedItems = items.map((it) => ({
-    description: it.description,
-    quantity: Number(it.quantity) || 0,
-    unit_price_cents: Math.round((Number(it.unit_price_cents) || 0) * 100),
-  }));
-  const totals = calcInvoiceTotals(normalizeLineItems(parsedItems));
+  const parsedItems = draftsToItems(items);
 
   function handleApprove(replaceCustomQuote = false) {
     startTransition(async () => {
@@ -147,104 +145,16 @@ export function QuoteActions({
         </div>
       )}
 
-      {/* Adjust dialog */}
-      <Dialog open={adjustOpen} onOpenChange={setAdjustOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Adjust quote</DialogTitle>
-            <DialogDescription>
-              Build the final quote from line items. GST is calculated at 10%.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-2">
-            <div className="grid grid-cols-[1fr_4rem_6rem_2rem] gap-2 text-xs text-muted-foreground">
-              <span>Description</span>
-              <span>Qty</span>
-              <span>Unit $</span>
-              <span />
-            </div>
-            {items.map((item, i) => (
-              <div key={i} className="grid grid-cols-[1fr_4rem_6rem_2rem] items-center gap-2">
-                <Input
-                  value={item.description}
-                  placeholder="Description"
-                  onChange={(e) =>
-                    setItems((prev) =>
-                      prev.map((it, j) => (j === i ? { ...it, description: e.target.value } : it))
-                    )
-                  }
-                />
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={item.quantity}
-                  onChange={(e) =>
-                    setItems((prev) =>
-                      prev.map((it, j) => (j === i ? { ...it, quantity: e.target.value } : it))
-                    )
-                  }
-                />
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={item.unit_price_cents}
-                  onChange={(e) =>
-                    setItems((prev) =>
-                      prev.map((it, j) => (j === i ? { ...it, unit_price_cents: e.target.value } : it))
-                    )
-                  }
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  disabled={items.length === 1}
-                  onClick={() => setItems((prev) => prev.filter((_, j) => j !== i))}
-                >
-                  <Trash2 className="size-4" />
-                </Button>
-              </div>
-            ))}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                setItems((prev) => [...prev, { description: "", quantity: "1", unit_price_cents: "0.00" }])
-              }
-            >
-              <Plus /> Add line
-            </Button>
-          </div>
-
-          <div className="space-y-1 rounded-lg bg-muted/50 p-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Subtotal (ex GST)</span>
-              <span>{formatAud(totals.subtotal_cents)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">GST (10%)</span>
-              <span>{formatAud(totals.gst_cents)}</span>
-            </div>
-            <div className="flex justify-between font-semibold">
-              <span>Total</span>
-              <span>{formatAud(totals.total_cents)}</span>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAdjustOpen(false)} disabled={pending}>
-              Cancel
-            </Button>
-            <Button onClick={handleAdjust} disabled={pending || totals.total_cents <= 0}>
-              Save & send ({formatAud(totals.total_cents)})
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <QuotePriceBuilder
+        open={adjustOpen}
+        onOpenChange={setAdjustOpen}
+        items={items}
+        setItems={setItems}
+        serviceSlug={serviceSlug}
+        estimateMidpointCents={estimateMidpointCents}
+        pending={pending}
+        onSave={handleAdjust}
+      />
 
       {/* Confirm discarding an existing custom quote */}
       <Dialog open={replaceOpen} onOpenChange={setReplaceOpen}>

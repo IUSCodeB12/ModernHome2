@@ -150,7 +150,8 @@ export default async function AdminQuoteDetailPage({
             quoteId={quote.id}
             status={quote.status}
             estimateMidpointCents={midpoint}
-            hasCustomQuote={((quote.quote_line_items ?? []) as LineItem[]).length > 0}
+            serviceSlug={quote.services?.slug ?? null}
+            existingLineItems={(quote.quote_line_items ?? []) as LineItem[]}
           />
         </div>
       </div>

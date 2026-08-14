@@ -9,7 +9,7 @@ import type { Tables } from "@/lib/database.types";
  */
 
 export type AdminQuoteRow = Tables<"quote_requests"> & {
-  services: Pick<Tables<"services">, "name" | "price_unit" | "base_price_cents"> & {
+  services: Pick<Tables<"services">, "name" | "slug" | "price_unit" | "base_price_cents"> & {
     service_questions: Tables<"service_questions">[];
   };
   profiles: Pick<Tables<"profiles">, "full_name" | "phone" | "suburb" | "postcode"> | null;
@@ -67,7 +67,7 @@ export function demoQuotes(): AdminQuoteRow[] {
       created_at: addDays(now, -1).toISOString(),
       updated_at: addDays(now, -1).toISOString(),
       services: {
-        name: "TV Wall Mounting", price_unit: "fixed", base_price_cents: 14900,
+        name: "TV Wall Mounting", slug: "tv-wall-mounting", price_unit: "fixed", base_price_cents: 14900,
         service_questions: tvQuestions,
       },
       profiles: { full_name: "Jordan Nguyen", phone: "0400 111 222", suburb: "Richmond", postcode: "3121" },
@@ -96,7 +96,7 @@ export function demoQuotes(): AdminQuoteRow[] {
       expires_at: addDays(now, 14).toISOString(),
       created_at: addDays(now, -3).toISOString(),
       updated_at: addDays(now, -2).toISOString(),
-      services: { name: "LED Strip Lighting", price_unit: "per_metre", base_price_cents: 8500, service_questions: [] },
+      services: { name: "LED Strip Lighting", slug: "led-strip-lighting", price_unit: "per_metre", base_price_cents: 8500, service_questions: [] },
       profiles: { full_name: "Priya Sharma", phone: "0400 333 444", suburb: "Carlton", postcode: "3053" },
       bookings: {
         id: "demo-booking-2", quote_request_id: "demo-quote-2", customer_id: "demo-cust-2",
