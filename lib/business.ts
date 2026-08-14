@@ -46,7 +46,10 @@ export const BUSINESS: BusinessIdentity = {
   acn: null,
   electricalLicence: null,
   email: null,
-  phone: null,
+  // The owner's mobile, and the only contact channel that reaches a human
+  // today — `email` is still null because the domain mailbox isn't routed
+  // (see docs/domain-email-setup.md §3), so transactional mail leans on this.
+  phone: "0469361869",
   serviceArea: "Greater Melbourne",
   jurisdiction: "Victoria",
 };

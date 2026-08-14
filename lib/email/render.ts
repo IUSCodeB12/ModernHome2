@@ -30,6 +30,9 @@ export type Block =
   /** Quieter secondary text — reasons, caveats, small print. */
   | { kind: "note"; text: string };
 
+/** Who the email is from, and how to reach them. Built by `config.signature()`. */
+export type Signature = { from: string; contacts: string[] };
+
 /** The single button at the bottom. `path` is site-relative. */
 export type Cta = { label: string; path: string };
 
@@ -151,11 +154,27 @@ function preheaderHtml(text: string): string {
   return `<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;height:0;width:0">${escapeHtml(text)}${pad}</div>`;
 }
 
+/**
+ * Sign-off block, shown on customer mail only.
+ *
+ * A transactional email that ends at a button reads like it came from a
+ * system. Naming the sender and printing the phone number turns the same
+ * message into correspondence someone can reply to.
+ */
+function signatureHtml(sig: Signature): string {
+  const contacts = sig.contacts.filter(Boolean).map(escapeHtml).join(" &middot; ");
+  return `<div style="margin-top:20px;padding-top:16px;border-top:1px solid #f0efec">
+      <p style="margin:0 0 2px;color:#78716c;font-size:14px">Kind regards,</p>
+      <p style="margin:0;font-weight:600;font-size:14px;color:#1c1917">${escapeHtml(sig.from)}</p>
+      <p style="margin:2px 0 0;color:#78716c;font-size:13px">${contacts}</p>
+    </div>`;
+}
+
 export function renderHtml(
   blocks: Block[],
-  options: { preheader: string; cta: Cta }
+  options: { preheader: string; cta: Cta; signature?: Signature }
 ): string {
-  const { preheader, cta } = options;
+  const { preheader, cta, signature } = options;
   const inner = blocks.map(htmlBlock).join("");
   const footerContact = BUSINESS.email ? ` · ${escapeHtml(BUSINESS.email)}` : "";
   // Australian Spam Act sender identification: name the sender and give a way
@@ -175,20 +194,27 @@ export function renderHtml(
       <div style="background:#fff;border:1px solid #e7e5e4;border-radius:16px;padding:24px;margin-top:16px;line-height:1.55;font-size:15px">
         ${inner}
         <p style="margin:20px 0 0"><a href="${SITE_ORIGIN}${cta.path}" style="display:inline-block;background:#1c1917;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">${escapeHtml(cta.label)}</a></p>
+        ${signature ? signatureHtml(signature) : ""}
       </div>
       <p style="color:#a8a29e;font-size:12px;margin-top:16px;line-height:1.5">${legal} · Servicing ${escapeHtml(BUSINESS.serviceArea)}${footerContact}</p>
     </div>
   </body></html>`;
 }
 
-export function renderText(blocks: Block[], options: { cta: Cta }): string {
+export function renderText(
+  blocks: Block[],
+  options: { cta: Cta; signature?: Signature }
+): string {
   const body = blocks
     .map(textBlock)
     .filter((b): b is string => b !== null && b !== "")
     .join("\n\n");
+  const sig = options.signature
+    ? `\n\nKind regards,\n${options.signature.from}\n${options.signature.contacts.filter(Boolean).join(" · ")}`
+    : "";
   const legal = BUSINESS.legalName
     ? `${BUSINESS.legalName}${BUSINESS.abn ? ` · ABN ${BUSINESS.abn}` : ""}`
     : BRAND.name;
   const contact = BUSINESS.email ? ` · ${BUSINESS.email}` : "";
-  return `${body}\n\n${options.cta.label}: ${SITE_ORIGIN}${options.cta.path}\n\n—\n${legal} · Servicing ${BUSINESS.serviceArea}${contact}`;
+  return `${body}\n\n${options.cta.label}: ${SITE_ORIGIN}${options.cta.path}${sig}\n\n—\n${legal} · Servicing ${BUSINESS.serviceArea}${contact}`;
 }

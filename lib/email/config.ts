@@ -39,10 +39,30 @@ export function canReceiveReplies(): boolean {
 
 /**
  * Where to tell a customer to reach us, given what's actually wired up.
- * Falls back to the portal, which always works because it's this same app.
+ * The phone comes first when there is one — it's the channel that reaches a
+ * human today. Falls back to the portal, which always works because it's this
+ * same app.
  */
 export function contactSentence(): string {
+  if (BUSINESS.phone) {
+    return `call us on ${BUSINESS.phone} or reply in your portal — we'll sort it out.`;
+  }
   return canReceiveReplies()
     ? "just reply to this email — we'll sort it out."
     : "get in touch through your portal and we'll sort it out.";
+}
+
+/**
+ * Sign-off for customer mail: a named sender and the ways to reach them.
+ *
+ * Null identity fields are omitted rather than substituted (the rule in
+ * `lib/business.ts`), so this shrinks to just the team name and website
+ * until a phone and mailbox exist — it never prints an empty contact line.
+ */
+export function signature(): { from: string; contacts: string[] } {
+  const contacts: string[] = [];
+  if (BUSINESS.phone) contacts.push(BUSINESS.phone);
+  if (REPLY_TO) contacts.push(REPLY_TO);
+  contacts.push(BRAND.domain);
+  return { from: `The ${BRAND.name} team`, contacts };
 }

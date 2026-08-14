@@ -1,4 +1,4 @@
-import { FROM, REPLY_TO } from "@/lib/email/config";
+import { FROM, REPLY_TO, signature } from "@/lib/email/config";
 import { renderHtml, renderText } from "@/lib/email/render";
 import {
   TEMPLATES,
@@ -35,10 +35,18 @@ export function buildEmail<K extends EmailTemplate>(
 ): { subject: string; html: string; text: string } {
   const def = TEMPLATES[template];
   const blocks = def.blocks(data);
+  // Customer mail signs off from a named team with a phone number; admin
+  // alerts go to the tradie's own inbox, where signing off to himself would
+  // just be noise.
+  const sig = def.audience === "customer" ? signature() : undefined;
   return {
     subject: def.subject(data),
-    html: renderHtml(blocks, { preheader: def.preheader(data), cta: def.cta }),
-    text: renderText(blocks, { cta: def.cta }),
+    html: renderHtml(blocks, {
+      preheader: def.preheader(data),
+      cta: def.cta,
+      signature: sig,
+    }),
+    text: renderText(blocks, { cta: def.cta, signature: sig }),
   };
 }
 

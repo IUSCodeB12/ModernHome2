@@ -8,6 +8,8 @@ import {
   moneyRange,
   slotWindow,
 } from "@/lib/email/render";
+import { BRAND } from "@/lib/brand";
+import { BUSINESS } from "@/lib/business";
 
 /**
  * These tests exist because email is the one part of the app nobody sees
@@ -217,6 +219,51 @@ describe("audience routing", () => {
       expect(template.startsWith("admin_")).toBe(
         TEMPLATES[template].audience === "admin"
       );
+    }
+  });
+
+  it("signs off customer mail only, in both MIME parts", () => {
+    for (const template of ALL) {
+      const { html, text } = build(template, FULL);
+      const signed = TEMPLATES[template].audience === "customer";
+      expect(html.includes("Kind regards,"), template).toBe(signed);
+      expect(text.includes("Kind regards,"), template).toBe(signed);
+      // The sign-off has to name a sender, not just say "regards".
+      expect(html.includes(`The ${BRAND.name} team`), template).toBe(signed);
+    }
+  });
+
+  it("puts a reachable contact in every customer sign-off", () => {
+    // A signature whose contact line collapsed to nothing is worse than none —
+    // it reads as an oversight. Something must always be there.
+    for (const template of ALL) {
+      if (TEMPLATES[template].audience !== "customer") continue;
+      const lines = build(template, FULL).text.split("\n");
+      // The contact line is whatever directly follows the sender's name.
+      const nameAt = lines.indexOf(`The ${BRAND.name} team`);
+      expect(nameAt, template).toBeGreaterThan(-1);
+      const contact = lines[nameAt + 1] ?? "";
+      expect(contact.trim().length, template).toBeGreaterThan(0);
+      expect(contact, template).toContain(BRAND.domain);
+    }
+  });
+});
+
+describe("the enquiry acknowledgement", () => {
+  it("thanks the customer and says how they'll be contacted", () => {
+    const { subject, text } = build("quote_received", FULL);
+    expect(subject.toLowerCase()).toContain("thank you");
+    expect(text).toContain("Thank you for your interest");
+    expect(text).toMatch(/one of our team will be in touch/i);
+  });
+
+  it("offers the business phone when there is one", () => {
+    const { text } = build("quote_received", FULL);
+    if (BUSINESS.phone) {
+      expect(text).toContain(BUSINESS.phone);
+    } else {
+      // No number on file must degrade to the portal, never to a blank gap.
+      expect(text).toMatch(/portal/i);
     }
   });
 });

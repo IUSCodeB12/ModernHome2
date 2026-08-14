@@ -8,6 +8,7 @@ import {
 } from "@/lib/email/render";
 import { contactSentence } from "@/lib/email/config";
 import { BRAND } from "@/lib/brand";
+import { BUSINESS } from "@/lib/business";
 
 /**
  * Every transactional email, as data.
@@ -106,7 +107,7 @@ export const TEMPLATES: { [K in EmailTemplate]: Definition<K> } = {
   quote_received: {
     audience: "customer",
     cta: PORTAL,
-    subject: (d) => `We've got your ${d.service} request`,
+    subject: (d) => `Thank you for your ${d.service} enquiry`,
     preheader: (d) =>
       moneyRange(d.estimateLowCents, d.estimateHighCents)
         ? "Here's your estimate and the window you picked."
@@ -114,10 +115,10 @@ export const TEMPLATES: { [K in EmailTemplate]: Definition<K> } = {
     blocks: (d) => {
       const range = moneyRange(d.estimateLowCents, d.estimateHighCents);
       return [
-        { kind: "heading", text: "Thanks — we've got your request" },
+        { kind: "heading", text: "Thank you for your enquiry" },
         {
           kind: "para",
-          text: `We've received your ${d.service} request and we're reviewing it now. You'll get a fixed price from us shortly.`,
+          text: `Thank you for your interest in ${BRAND.name}. We've received your ${d.service} enquiry and it's with our team now.`,
         },
         {
           kind: "facts",
@@ -127,14 +128,24 @@ export const TEMPLATES: { [K in EmailTemplate]: Definition<K> } = {
             { label: "Preferred window", value: slotWindow(d.slotStart, d.slotEnd) },
           ],
         },
+        {
+          kind: "para",
+          text: "One of our team will be in touch shortly to confirm the details — by phone or here in the app, whichever suits you best.",
+        },
+        {
+          kind: "para",
+          text: BUSINESS.phone
+            ? `If you'd like to talk it through sooner, call us on ${BUSINESS.phone} and we'll walk you through it.`
+            : "If you'd like to talk it through sooner, message us in your portal and we'll walk you through it.",
+        },
         range
           ? {
               kind: "note",
-              text: "That estimate is indicative — the fixed price we send next is the one that counts.",
+              text: "That estimate is indicative — the fixed price we send next is the one that counts, and there's nothing to pay until you accept it.",
             }
           : {
               kind: "note",
-              text: "This one needs a custom quote, so we'll price it by hand rather than give you an instant figure.",
+              text: "This one needs a custom quote, so we'll price it by hand rather than give you an instant figure. Nothing to pay until you accept it.",
             },
       ];
     },
