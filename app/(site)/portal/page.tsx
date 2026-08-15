@@ -2,14 +2,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { formatDistanceToNowStrict } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
-import { ArrowRight, ChevronRight } from "lucide-react";
-import { PortalStatus } from "@/components/portal/portal-status";
+import { ArrowRight } from "lucide-react";
+import { JobCard } from "@/components/portal/job-card";
+import { JobRow } from "@/components/portal/job-row";
 import {
   attentionRank,
   journeyFor,
   journeyHeadline,
   resolveStatus,
-  type Journey,
 } from "@/lib/bookings/journey";
 import { formatAud } from "@/lib/quote/estimate";
 import { BUSINESS_TIME_ZONE } from "@/lib/slots";
@@ -23,37 +23,14 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-function CompactRow({
-  id,
-  service,
-  journey,
-  meta,
-}: {
-  id: string;
-  service: string;
-  journey: Journey;
-  meta: string;
-}) {
+function Divider({ label }: { label: string }) {
   return (
-    <li>
-      <Link
-        href={`/portal/${id}`}
-        className="group flex items-center justify-between gap-3 py-3"
-      >
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium">{service}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">{meta}</p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <PortalStatus
-            label={journey.label}
-            tone={journey.tone}
-            className="hidden sm:inline-flex"
-          />
-          <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-        </div>
-      </Link>
-    </li>
+    <div className="flex items-center gap-3">
+      <h2 className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+        {label}
+      </h2>
+      <span className="h-px flex-1 bg-border" />
+    </div>
   );
 }
 
@@ -61,7 +38,7 @@ export default async function PortalPage() {
   if (!isSupabaseConfigured()) {
     return (
       <div className="mx-auto w-full max-w-3xl px-4 py-16">
-        <h1 className="text-3xl">My bookings</h1>
+        <h1 className="font-display text-3xl">My bookings</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Supabase isn&apos;t configured yet — bookings will appear here once
           it&apos;s connected.
@@ -83,19 +60,20 @@ export default async function PortalPage() {
     )
     .order("created_at", { ascending: false });
 
+  const inZone = (d: Date, fmt: string) =>
+    formatInTimeZone(d, BUSINESS_TIME_ZONE, fmt);
+
   const rows = (quotes ?? []).map((quote) => {
     const booking = quote.bookings;
     const status = resolveStatus(booking?.status, quote.status);
     const journey = journeyFor(status);
 
-    const arrival =
-      booking?.slot_start && booking?.slot_end
-        ? `${formatInTimeZone(new Date(booking.slot_start), BUSINESS_TIME_ZONE, "EEE d MMM, h:mmaaa")} – ${formatInTimeZone(new Date(booking.slot_end), BUSINESS_TIME_ZONE, "h:mmaaa")}`
-        : null;
+    const slotStart = booking?.slot_start ? new Date(booking.slot_start) : null;
+    const slotEnd = booking?.slot_end ? new Date(booking.slot_end) : null;
 
     // The countdown only means something while the visit is still ahead — a
     // completed job reading "in 6 days" is nonsense.
-    const slotMs = booking?.slot_start ? new Date(booking.slot_start).getTime() : null;
+    const slotMs = slotStart?.getTime() ?? null;
     const awaitingVisit =
       status === "approved" || status === "booked" || status === "in_progress";
     const relative =
@@ -112,21 +90,26 @@ export default async function PortalPage() {
     return {
       id: quote.id,
       service: quote.services?.name ?? "Service",
-      requestedOn: formatInTimeZone(
-        new Date(quote.created_at),
-        BUSINESS_TIME_ZONE,
-        "d MMM yyyy"
-      ),
+      requestedOn: inZone(new Date(quote.created_at), "d MMM yyyy"),
       status,
       journey,
       relative,
       amount,
       slotMs,
+      slotEndMs: slotEnd?.getTime() ?? null,
+      installer: booking?.assigned_installer ?? null,
+      arrivalParts:
+        slotStart && slotEnd
+          ? {
+              weekday: inZone(slotStart, "EEE"),
+              day: inZone(slotStart, "d"),
+              month: inZone(slotStart, "MMM"),
+              window: `${inZone(slotStart, "h:mmaaa")} – ${inZone(slotEnd, "h:mmaaa")}`,
+            }
+          : null,
       headline: journeyHeadline({
         status,
-        arrival,
-        relative,
-        amount: quote.final_quote_cents ? formatAud(quote.final_quote_cents) : null,
+        arrivalDay: slotStart ? inZone(slotStart, "EEEE") : null,
         installer: booking?.assigned_installer,
       }),
       // Anything not paid off or cancelled still wants the customer's attention.
@@ -145,17 +128,28 @@ export default async function PortalPage() {
   const [feature, ...alsoOpen] = live;
   const past = rows.filter((r) => !r.active);
 
+  // The subtitle reports the state of play rather than describing the page.
+  // "Your quotes and jobs, all in one place" is true of an empty portal too,
+  // which is how you can tell it wasn't telling anyone anything.
+  const subtitle = !rows.length
+    ? "Everything you book with us lives here."
+    : feature?.journey.tone === "action"
+      ? "One of these is waiting on you."
+      : feature?.relative
+        ? `Your next visit is ${feature.relative}.`
+        : feature
+          ? "We'll keep this updated as your job moves."
+          : `${past.length} job${past.length === 1 ? "" : "s"} completed. Ready for the next one?`;
+
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:py-12">
-      <h1 className="text-3xl sm:text-4xl">My bookings</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Your quotes and jobs, all in one place.
-      </p>
+      <h1 className="font-display text-3xl sm:text-4xl">My bookings</h1>
+      <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>
 
       {!rows.length && (
-        <div className="mt-10 rounded-xl border border-dashed p-10 text-center">
-          <p className="text-lg">Start your first job</p>
-          <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
+        <div className="mt-10 rounded-2xl border border-dashed p-10 text-center">
+          <p className="font-display text-xl">Start your first job</p>
+          <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
             Answer a few questions and you&apos;ll have a fixed price in a couple of
             minutes — no site visit needed.
           </p>
@@ -169,47 +163,35 @@ export default async function PortalPage() {
       )}
 
       {feature && (
-        <Link
-          href={`/portal/${feature.id}`}
-          className="card-lift group mt-8 block rounded-xl border bg-card p-5 transition-colors hover:border-foreground/20 sm:p-6"
-        >
-          <div className="flex items-start justify-between gap-4">
-            <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-              {feature.service}
-            </p>
-            <PortalStatus label={feature.journey.label} tone={feature.journey.tone} />
-          </div>
-
-          <p className="mt-3 text-balance text-xl leading-snug sm:text-2xl">
-            {feature.headline.title}
-          </p>
-
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-            {feature.relative && <span>{feature.relative}</span>}
-            {feature.amount && !feature.headline.showsAmount && (
-              <span>{feature.amount}</span>
-            )}
-            <span className="inline-flex items-center gap-1 font-medium text-foreground transition-transform group-hover:translate-x-0.5">
-              View job <ChevronRight className="size-4" />
-            </span>
-          </div>
-        </Link>
+        <div className="mt-8">
+          <JobCard
+            id={feature.id}
+            serviceName={feature.service}
+            status={feature.status}
+            journey={feature.journey}
+            title={feature.headline.title}
+            amount={feature.amount}
+            arrival={feature.arrivalParts}
+            slotStartMs={feature.slotMs}
+            slotEndMs={feature.slotEndMs}
+            installer={feature.installer}
+          />
+        </div>
       )}
 
       {alsoOpen.length > 0 && (
         <section className="mt-10">
-          <div className="flex items-center gap-3">
-            <h2 className="text-sm font-medium text-muted-foreground">Also open</h2>
-            <span className="h-px flex-1 bg-border" />
-          </div>
-          <ul className="mt-1 divide-y">
+          <Divider label="Also open" />
+          <ul className="mt-2 divide-y">
             {alsoOpen.map((r) => (
-              <CompactRow
+              <JobRow
                 key={r.id}
                 id={r.id}
-                service={r.service}
+                serviceName={r.service}
+                status={r.status}
                 journey={r.journey}
-                meta={[r.relative, r.amount].filter(Boolean).join(" · ") || r.requestedOn}
+                meta={r.relative ?? r.requestedOn}
+                amount={r.amount}
               />
             ))}
           </ul>
@@ -218,18 +200,17 @@ export default async function PortalPage() {
 
       {past.length > 0 && (
         <section className="mt-10">
-          <div className="flex items-center gap-3">
-            <h2 className="text-sm font-medium text-muted-foreground">Earlier</h2>
-            <span className="h-px flex-1 bg-border" />
-          </div>
-          <ul className="mt-1 divide-y">
+          <Divider label="Earlier" />
+          <ul className="mt-2 divide-y">
             {past.map((r) => (
-              <CompactRow
+              <JobRow
                 key={r.id}
                 id={r.id}
-                service={r.service}
+                serviceName={r.service}
+                status={r.status}
                 journey={r.journey}
-                meta={[r.amount, r.requestedOn].filter(Boolean).join(" · ")}
+                meta={r.requestedOn}
+                amount={r.amount}
               />
             ))}
           </ul>

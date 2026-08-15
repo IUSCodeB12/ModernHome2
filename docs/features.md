@@ -54,12 +54,18 @@ verification happens on the review step at confirm time rather than mid-flow.
 ## Bookings lifecycle (the big cross-cutting one)
 Enquiry → quote → accept → deposit → job → invoice → receipt.
 - **Customer routes:** `app/(site)/portal/{page,[id]/page,[id]/actions,[id]/receipt/route}.ts`
-- **Customer UI:** `components/portal/{quote-response,payment-panel,reschedule-request,journey-rail,portal-status,photo-strip}.tsx`
+- **Customer UI:** `components/portal/` — stage presentation
+  (`stage-theme.ts`, `stage-hero`, `journey-rail`, `portal-status`), the pieces a
+  hero swaps in (`arrival-ticket`), page sections (`visit-card`, `quote-summary`,
+  `enquiry-details`, `job-aside`), list surfaces (`job-card`, `job-row`), and
+  actions (`quote-response`, `payment-panel`, `reschedule-request`, `photo-strip`)
 - **Admin routes:** `app/(admin)/.../bookings/{page,actions}.ts`,
   `app/(admin)/.../quotes/{page,[id]/page,actions}.ts`, `.../invoices/{page,actions}.ts`
 - **Admin UI:** `components/admin/{bookings-view,booking-drawer,quotes-table,quote-actions,quote-photos,invoice-editor}.tsx`
 - **Logic:** `lib/bookings/status.ts` (state machine), `lib/bookings/journey.ts` (the
-  5-stage customer-facing view of those statuses), `lib/invoice/{calc,create,receipt-pdf}.tsx`,
+  5-stage customer-facing view of those statuses, plus its headlines),
+  `lib/bookings/countdown.ts` + `hooks/use-countdown.ts` (live arrival countdown),
+  `lib/invoice/{calc,create,receipt-pdf}.tsx`,
   `lib/email/{notify,send}.ts`, `lib/admin/{bookings-data,quotes-data,invoices-data}.ts`
 - **DB:** `bookings`, `quote_requests`, `invoices` (+ slot exclusion constraint, status-sync trigger)
 

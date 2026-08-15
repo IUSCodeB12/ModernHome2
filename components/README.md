@@ -12,7 +12,7 @@ per-feature file map.
 | `services/` | Service-detail widgets (estimate preview) |
 | `quote/` | Quote wizard and its steps |
 | `gallery/` | Public gallery grid + before/after slider |
-| `portal/` | Customer portal actions: accept/decline, payment, reschedule, settings |
+| `portal/` | Customer portal: per-stage hero + accents, arrival ticket, journey rail, job list cards, and the actions (accept/decline, payment, reschedule, settings) |
 | `auth/` | Reusable auth UI (auth card, OTP input, resend timer, Google button) |
 | `admin/` | Admin dashboard views/editors (bookings, quotes, invoices, gallery, hero, MFA, …) |
 | `ar/` | `model-viewer` AR wrapper |

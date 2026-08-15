@@ -56,22 +56,6 @@ describe("attentionRank", () => {
   });
 });
 
-describe("headline / amount redundancy", () => {
-  it("flags the states whose title already carries the money", () => {
-    expect(journeyHeadline({ status: "quoted", amount: "$581" }).showsAmount).toBe(true);
-    expect(journeyHeadline({ status: "invoiced", amount: "$581" }).showsAmount).toBe(
-      true
-    );
-  });
-
-  it("does not flag it when there is no amount to show", () => {
-    expect(journeyHeadline({ status: "quoted" }).showsAmount).toBe(false);
-    expect(journeyHeadline({ status: "booked", arrival: "Thu" }).showsAmount).toBe(
-      false
-    );
-  });
-});
-
 describe("resolveStatus", () => {
   it("prefers the booking status when there is one", () => {
     expect(resolveStatus("booked", "approved")).toBe("booked");
@@ -120,15 +104,13 @@ describe("stepState", () => {
 });
 
 describe("journeyHeadline", () => {
-  it("leads with the arrival window once booked", () => {
+  it("names the day once booked, and leaves the clock to the ticket", () => {
     const { title, body } = journeyHeadline({
       status: "booked",
-      arrival: "Thu 14 Aug, 8:00am – 10:00am",
-      relative: "in 2 days",
+      arrivalDay: "Thursday",
       installer: "Tom",
     });
-    expect(title).toBe("We arrive Thu 14 Aug, 8:00am – 10:00am");
-    expect(body).toContain("in 2 days");
+    expect(title).toBe("We're coming Thursday");
     expect(body).toContain("Tom");
   });
 
@@ -139,16 +121,22 @@ describe("journeyHeadline", () => {
     expect(body).not.toContain("null");
   });
 
-  it("puts the amount in the headline when money is owed", () => {
-    expect(journeyHeadline({ status: "quoted", amount: "$836.00" }).title).toBe(
-      "Your quote is ready — $836.00"
-    );
-    expect(journeyHeadline({ status: "invoiced", amount: "$836.00" }).title).toBe(
-      "Payment due — $836.00"
-    );
+  // Guards the rule the whole portal layout rests on: the headline says what is
+  // happening, and the objects under it — ticket, price, receipt — say the
+  // numbers. A title that grows a "$" or a "8:00am" back is a duplicate on the
+  // page, not just a longer sentence.
+  it("never puts a figure or a clock time in the title", () => {
+    for (const status of BOOKING_STATUSES) {
+      const { title } = journeyHeadline({
+        status,
+        arrivalDay: "Thursday",
+        installer: "Tom",
+      });
+      expect(title, status).not.toMatch(/[$\d]/);
+    }
   });
 
-  it("drops the dash when there is no amount to show", () => {
+  it("keeps money out of the title — the figure is its own object", () => {
     expect(journeyHeadline({ status: "quoted" }).title).toBe("Your quote is ready");
     expect(journeyHeadline({ status: "invoiced" }).title).toBe("Payment due");
   });

@@ -25,7 +25,9 @@ export function QuoteResponse({ quoteId }: { quoteId: string }) {
 
   if (state?.ok) {
     return (
-      <p className="text-sm font-medium text-emerald-700">{state.ok}</p>
+      <p className="text-sm font-medium text-emerald-700 dark:text-emerald-500">
+        {state.ok}
+      </p>
     );
   }
 

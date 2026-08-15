@@ -133,20 +133,19 @@ export function stepState(journey: Journey, index: number): StepState {
 
 export type HeadlineInput = {
   status: BookingStatus;
-  /** Pre-formatted arrival window, e.g. "Thu 14 Aug, 8:00am – 10:00am". */
-  arrival?: string | null;
-  /** Pre-formatted relative day, e.g. "in 2 days" / "today". */
-  relative?: string | null;
-  /** Pre-formatted money, e.g. "$836.00". */
-  amount?: string | null;
+  /**
+   * The weekday the visit falls on, e.g. "Thursday" — not the full window.
+   * The ticket beneath the headline prints the date, the times and a live
+   * countdown; a title repeating all three verbatim was the page saying the
+   * same sentence twice in two typefaces.
+   */
+  arrivalDay?: string | null;
   installer?: string | null;
 };
 
 export type Headline = {
   title: string;
   body: string;
-  /** The title already states the money — don't repeat it alongside. */
-  showsAmount: boolean;
 };
 
 /**
@@ -172,12 +171,15 @@ export function attentionRank(journey: Journey): number {
  * The one sentence the page leads with. Every state gets its own — this is the
  * answer to "when are you coming / what do I owe", which is the only reason a
  * customer opens this page.
+ *
+ * Deliberately free of money and of exact times. Both are rendered as their own
+ * objects on every surface that has them, so a title carrying them too printed
+ * the same value twice, inches apart, at two different sizes. This says what is
+ * happening; the objects below say precisely when and how much.
  */
 export function journeyHeadline({
   status,
-  arrival,
-  relative,
-  amount,
+  arrivalDay,
   installer,
 }: HeadlineInput): Headline {
   switch (status) {
@@ -185,35 +187,32 @@ export function journeyHeadline({
       return {
         title: "We're putting your quote together",
         body: "We price every job by hand, so it's usually with you within one business day.",
-        showsAmount: false,
       };
 
     case "quoted":
       return {
-        title: amount ? `Your quote is ready — ${amount}` : "Your quote is ready",
+        title: "Your quote is ready",
         body: "Have a look at what's included, then let us know if you're happy to go ahead.",
-        showsAmount: !!amount,
       };
 
     case "approved":
       return {
         title: "You're locked in",
-        body: "We're confirming your arrival window now — you'll get an email as soon as it's set.",
-        showsAmount: false,
+        // The ticket below is showing the requested window at this stage, so
+        // "we're confirming your arrival window" read as though the ticket
+        // were describing something else.
+        body: arrivalDay
+          ? "We're just confirming this window — you'll get an email the moment it's locked."
+          : "We're confirming your arrival window now — you'll get an email as soon as it's set.",
       };
 
-    case "booked": {
-      const parts = [relative, installer ? `${installer} is on the job` : null].filter(
-        Boolean
-      );
+    case "booked":
       return {
-        title: arrival ? `We arrive ${arrival}` : "You're booked in",
-        body: parts.length
-          ? parts.join(" · ")
+        title: arrivalDay ? `We're coming ${arrivalDay}` : "You're booked in",
+        body: installer
+          ? `${installer} is on the job. We'll be in touch the day before to confirm.`
           : "We'll be in touch the day before to confirm.",
-        showsAmount: false,
       };
-    }
 
     case "in_progress":
       return {
@@ -221,35 +220,30 @@ export function journeyHeadline({
         body: installer
           ? `${installer} is working on your job — we'll let you know the moment it's done.`
           : "We'll let you know the moment the job's done.",
-        showsAmount: false,
       };
 
     case "completed":
       return {
         title: "Job's done",
         body: "Thanks for having us. Your invoice will land here shortly.",
-        showsAmount: false,
       };
 
     case "invoiced":
       return {
-        title: amount ? `Payment due — ${amount}` : "Payment due",
+        title: "Payment due",
         body: "Pay the installer on site by card or cash, or by bank transfer. Any extra work agreed on the day is already in this total.",
-        showsAmount: !!amount,
       };
 
     case "paid":
       return {
         title: "All paid — thank you",
         body: "Your receipt is here whenever you need it.",
-        showsAmount: false,
       };
 
     case "cancelled":
       return {
         title: "This booking was cancelled",
         body: "Get in touch if that wasn't meant to happen, or start a new quote any time.",
-        showsAmount: false,
       };
   }
 }

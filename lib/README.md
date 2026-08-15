@@ -9,7 +9,7 @@ Non-UI logic, grouped by domain. Server-only unless noted. See
 | `auth/` | `roles` (`isAdmin`), `redirect` (`safeNext`) + tests |
 | `quote/` | Wizard types/state, answers, `estimate` math, image compress, demo data |
 | `slots.ts` | Availability/slot engine (Australia/Melbourne). Pure + tested |
-| `bookings/` | `status` — booking state machine (transitions) + tests |
+| `bookings/` | `status` — booking state machine (transitions); `journey` — the 5-stage customer view + headlines; `countdown` — arrival countdown formatting. All pure, all tested |
 | `invoice/` | `calc` (GST totals), `create` (invoice from quote), `receipt-pdf` |
 | `email/` | `send` (Resend, real when keyed), `notify` (look up customer + send) |
 | `services/` | `data` (loader), `content` (per-slug editorial copy) |
