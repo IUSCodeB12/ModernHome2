@@ -7,9 +7,12 @@ import { JobCard } from "@/components/portal/job-card";
 import { JobRow } from "@/components/portal/job-row";
 import {
   attentionRank,
+  jobGroup,
   journeyFor,
   journeyHeadline,
   resolveStatus,
+  JOB_GROUPS,
+  JOB_GROUP_LABELS,
 } from "@/lib/bookings/journey";
 import { formatAud } from "@/lib/quote/estimate";
 import { BUSINESS_TIME_ZONE } from "@/lib/slots";
@@ -23,12 +26,13 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-function Divider({ label }: { label: string }) {
+function Divider({ label, count }: { label: string; count: number }) {
   return (
     <div className="flex items-center gap-3">
       <h2 className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
         {label}
       </h2>
+      <span className="text-xs tabular-nums text-muted-foreground/60">{count}</span>
       <span className="h-px flex-1 bg-border" />
     </div>
   );
@@ -114,6 +118,7 @@ export default async function PortalPage() {
       }),
       // Anything not paid off or cancelled still wants the customer's attention.
       active: !journey.complete && !journey.cancelled,
+      group: jobGroup(journey, awaitingVisit && slotMs !== null),
     };
   });
 
@@ -128,13 +133,21 @@ export default async function PortalPage() {
   const [feature, ...alsoOpen] = live;
   const past = rows.filter((r) => !r.active);
 
+  // Headings appear only for groups that have something in them, so a customer
+  // with two jobs sees one heading and a customer with eleven sees three.
+  const grouped = JOB_GROUPS.map((group) => ({
+    group,
+    rows: (group === "past" ? past : alsoOpen).filter((r) => r.group === group),
+  })).filter((g) => g.rows.length > 0);
+
   // The subtitle reports the state of play rather than describing the page.
   // "Your quotes and jobs, all in one place" is true of an empty portal too,
   // which is how you can tell it wasn't telling anyone anything.
+  const needsYou = live.filter((r) => r.journey.tone === "action").length;
   const subtitle = !rows.length
     ? "Everything you book with us lives here."
-    : feature?.journey.tone === "action"
-      ? "One of these is waiting on you."
+    : needsYou
+      ? `${needsYou === 1 ? "One job is" : `${needsYou} jobs are`} waiting on you.`
       : feature?.relative
         ? `Your next visit is ${feature.relative}.`
         : feature
@@ -179,43 +192,29 @@ export default async function PortalPage() {
         </div>
       )}
 
-      {alsoOpen.length > 0 && (
-        <section className="mt-10">
-          <Divider label="Also open" />
+      {grouped.map(({ group, rows: groupRows }) => (
+        <section key={group} className="mt-10">
+          <Divider label={JOB_GROUP_LABELS[group]} count={groupRows.length} />
           <ul className="mt-2 divide-y">
-            {alsoOpen.map((r) => (
+            {groupRows.map((r) => (
               <JobRow
                 key={r.id}
                 id={r.id}
                 serviceName={r.service}
                 status={r.status}
                 journey={r.journey}
-                meta={r.relative ?? r.requestedOn}
+                // Every row gets a date. Two "TV Wall Mounting" rows showing
+                // only a price are indistinguishable, which is what the old
+                // list did whenever an amount existed.
+                meta={
+                  group === "past" ? r.requestedOn : (r.relative ?? r.requestedOn)
+                }
                 amount={r.amount}
               />
             ))}
           </ul>
         </section>
-      )}
-
-      {past.length > 0 && (
-        <section className="mt-10">
-          <Divider label="Earlier" />
-          <ul className="mt-2 divide-y">
-            {past.map((r) => (
-              <JobRow
-                key={r.id}
-                id={r.id}
-                serviceName={r.service}
-                status={r.status}
-                journey={r.journey}
-                meta={r.requestedOn}
-                amount={r.amount}
-              />
-            ))}
-          </ul>
-        </section>
-      )}
+      ))}
     </div>
   );
 }

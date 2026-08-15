@@ -149,6 +149,37 @@ export type Headline = {
 };
 
 /**
+ * Which list a job belongs in on the bookings index.
+ *
+ * A customer with one job doesn't need this. A customer with eleven — five of
+ * them sitting in the same status, several sharing a service name — gets an
+ * undifferentiated wall of rows, and the only way to find the one they came
+ * for is to read every line. Three buckets answer the three questions people
+ * actually arrive with: what needs me, when are you coming, what's still being
+ * sorted out.
+ */
+export const JOB_GROUPS = ["action", "scheduled", "pending", "past"] as const;
+
+export type JobGroup = (typeof JOB_GROUPS)[number];
+
+export const JOB_GROUP_LABELS: Record<JobGroup, string> = {
+  action: "Waiting on you",
+  scheduled: "Booked in",
+  pending: "In the works",
+  past: "Earlier",
+};
+
+/**
+ * `scheduled` means a visit date exists — the caller owns that, since it comes
+ * from the booking row rather than from the status.
+ */
+export function jobGroup(journey: Journey, scheduled: boolean): JobGroup {
+  if (journey.complete || journey.cancelled) return "past";
+  if (journey.tone === "action") return "action";
+  return scheduled ? "scheduled" : "pending";
+}
+
+/**
  * Sort key for a list of jobs: lower comes first. Whatever needs the customer
  * to do something outranks whatever is merely in flight.
  */

@@ -110,7 +110,7 @@ function Centrepiece({
 }) {
   switch (status) {
     case "enquiry":
-      return <Pricing />;
+      return <Working label="Being priced by hand" />;
 
     case "quoted":
       return amount ? (
@@ -133,7 +133,12 @@ function Centrepiece({
           slotEndMs={slotEndMs}
           className="mt-6"
         />
-      ) : null;
+      ) : (
+        // Accepted but no window locked in yet — the commonest resting state on
+        // a busy portal, and the one that used to render a hero with nothing
+        // in it at all.
+        <Working label="Finding you a window" />
+      );
 
     case "completed":
       return (
@@ -207,11 +212,13 @@ function Receipt({ amount, paidOn }: { amount: string; paidOn?: string | null })
 }
 
 /**
- * The wait, made to look like work in progress rather than a stalled page.
- * Every quote here is priced by hand, so there is genuinely nothing to show —
- * but a static line of text reads as "nothing is happening".
+ * A wait, made to look like work in progress rather than a stalled page.
+ *
+ * Pricing and slot-finding are both done by hand here, so there is genuinely
+ * nothing to show yet — but a bare line of text reads as "nothing is
+ * happening", and these two stages are where jobs sit longest.
  */
-function Pricing() {
+function Working({ label }: { label: string }) {
   return (
     <div className="mt-6 inline-flex items-center gap-2.5 rounded-full border bg-background/70 px-3.5 py-2">
       <span className="flex gap-1" aria-hidden>
@@ -223,7 +230,7 @@ function Pricing() {
           />
         ))}
       </span>
-      <span className="text-sm text-muted-foreground">Being priced by hand</span>
+      <span className="text-sm text-muted-foreground">{label}</span>
     </div>
   );
 }

@@ -5,6 +5,9 @@ import {
   attentionRank,
   journeyFor,
   journeyHeadline,
+  jobGroup,
+  JOB_GROUPS,
+  JOB_GROUP_LABELS,
   resolveStatus,
   stepState,
 } from "@/lib/bookings/journey";
@@ -147,5 +150,42 @@ describe("journeyHeadline", () => {
       expect(title.length, status).toBeGreaterThan(0);
       expect(body.length, status).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("jobGroup", () => {
+  const group = (s: Parameters<typeof journeyFor>[0], scheduled = false) =>
+    jobGroup(journeyFor(s), scheduled);
+
+  it("puts anything needing the customer in front", () => {
+    expect(group("quoted")).toBe("action");
+    expect(group("invoiced")).toBe("action");
+  });
+
+  it("separates a job with a date from one still being sorted", () => {
+    expect(group("booked", true)).toBe("scheduled");
+    expect(group("in_progress", true)).toBe("scheduled");
+    // The commonest resting state: accepted, but no window locked in yet.
+    expect(group("approved", false)).toBe("pending");
+    expect(group("approved", true)).toBe("scheduled");
+    expect(group("enquiry")).toBe("pending");
+  });
+
+  it("leaves a finished job awaiting its invoice in the works, not in the past", () => {
+    expect(group("completed")).toBe("pending");
+  });
+
+  it("files settled and cancelled jobs under past", () => {
+    expect(group("paid")).toBe("past");
+    expect(group("cancelled")).toBe("past");
+  });
+
+  it("never lets an action job hide behind a date", () => {
+    // An invoice is due whether or not the visit is still in the diary.
+    expect(group("invoiced", true)).toBe("action");
+  });
+
+  it("labels every group", () => {
+    for (const g of JOB_GROUPS) expect(JOB_GROUP_LABELS[g].length).toBeGreaterThan(0);
   });
 });
