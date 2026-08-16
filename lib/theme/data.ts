@@ -38,7 +38,16 @@ export const getPublishedTheme = cache(async (): Promise<ThemeInput> => {
     .eq("id", true)
     .maybeSingle();
 
-  if (error || !data) return DEFAULT_THEME;
+  if (error) {
+    // Worth a line. The site renders correctly on the fallback, so a missing
+    // table or a broken policy is otherwise completely silent — which is
+    // exactly how you ship a theme editor that appears to save and never
+    // takes effect. `maybeSingle` puts "no row yet" in `data`, not here, so
+    // this fires on real faults rather than on a not-yet-seeded database.
+    console.error("[theme] could not read theme_settings:", error.message);
+    return DEFAULT_THEME;
+  }
+  if (!data) return DEFAULT_THEME;
 
   const parsed = themeInputSchema.safeParse(data.tokens);
   if (!parsed.success) {
