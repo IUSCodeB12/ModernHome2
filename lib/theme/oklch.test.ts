@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   clampOklch,
+  hexToOklch,
   fitToGamut,
   formatOklch,
   isOutOfGamut,
@@ -39,6 +40,41 @@ describe("oklch → sRGB", () => {
 
   it("produces a six-digit hex for in-gamut colours", () => {
     expect(oklchToHex({ l: 0.988, c: 0.005, h: 84 })).toMatch(/^#[0-9a-f]{6}$/);
+  });
+});
+
+describe("hexToOklch", () => {
+  it("round-trips through hex without drifting", () => {
+    for (const hex of ["#ffffff", "#000000", "#e7000b", "#c8a15a", "#1f2933"]) {
+      const color = hexToOklch(hex);
+      expect(color, hex).not.toBeNull();
+      expect(oklchToHex(color!)).toBe(hex);
+    }
+  });
+
+  it("round-trips the house palette back to the same OKLCH", () => {
+    // The real test of the pair: a colour the admin nudges in the hex field and
+    // then leaves alone must not creep on every edit.
+    const brand = { l: 0.755, c: 0.095, h: 82 };
+    const back = hexToOklch(oklchToHex(brand))!;
+    expect(back.l).toBeCloseTo(brand.l, 2);
+    expect(back.c).toBeCloseTo(brand.c, 2);
+    expect(back.h).toBeCloseTo(brand.h, 0);
+  });
+
+  it("accepts shorthand and a missing hash", () => {
+    expect(oklchToHex(hexToOklch("#fff")!)).toBe("#ffffff");
+    expect(oklchToHex(hexToOklch("abc123")!)).toBe("#abc123");
+  });
+
+  it("returns null rather than a half-parsed colour", () => {
+    for (const bad of ["", "#12", "#12345", "rgb(1,2,3)", "red", "#gggggg", "#1234567"]) {
+      expect(hexToOklch(bad), bad).toBeNull();
+    }
+  });
+
+  it("reports greys as having no chroma", () => {
+    expect(hexToOklch("#808080")!.c).toBeLessThan(0.001);
   });
 });
 

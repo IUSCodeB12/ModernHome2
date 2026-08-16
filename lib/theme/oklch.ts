@@ -113,6 +113,49 @@ export function oklchToHex(color: Oklch): string {
 }
 
 /**
+ * `#rgb` / `#rrggbb` → OKLCH. The inverse of {@link oklchToHex}.
+ *
+ * Exists for the admin's hex field and the native colour input, which both
+ * speak sRGB. Nothing else in the theme pipeline deals in hex — the moment a
+ * picked colour enters the app it becomes three numbers and stays that way.
+ *
+ * Returns null for anything that is not a hex colour, which is the validation:
+ * the caller cannot end up holding a half-parsed value.
+ */
+export function hexToOklch(hex: string): Oklch | null {
+  const match = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex.trim());
+  if (!match) return null;
+
+  let digits = match[1];
+  if (digits.length === 3) {
+    digits = digits
+      .split("")
+      .map((d) => d + d)
+      .join("");
+  }
+
+  const [r, g, b] = [0, 2, 4].map((i) =>
+    decodeGamma(parseInt(digits.slice(i, i + 2), 16) / 255)
+  );
+
+  // Linear sRGB → LMS, then the cube root that OKLab is defined on.
+  const lLms = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const mLms = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const sLms = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+
+  const lightness = 0.2104542553 * lLms + 0.793617785 * mLms - 0.0040720468 * sLms;
+  const a = 1.9779984951 * lLms - 2.428592205 * mLms + 0.4505937099 * sLms;
+  const bAxis = 0.0259040371 * lLms + 0.7827717662 * mLms - 0.808675766 * sLms;
+
+  return clampOklch({
+    l: lightness,
+    c: Math.hypot(a, bAxis),
+    // atan2 returns −180…180; clampOklch normalises the negative half.
+    h: (Math.atan2(bAxis, a) * 180) / Math.PI,
+  });
+}
+
+/**
  * True when the colour cannot be shown in sRGB and had to be clipped.
  *
  * The admin UI uses this to steer a picked hue back into a displayable chroma
