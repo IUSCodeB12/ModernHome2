@@ -50,6 +50,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       dark: null,
       radius: 0.375,
       fonts: { body: "geist", display: "geist" },
+      // Minimal earns its name: texture, not colour.
+      backdrop: "linen",
     },
   },
   {
@@ -67,6 +69,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       dark: null,
       radius: 0.5,
       fonts: { body: "inter", display: "instrument-serif" },
+      backdrop: "spotlight",
     },
   },
   {
@@ -84,6 +87,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       dark: null,
       radius: 1,
       fonts: { body: "geist", display: "fraunces" },
+      // Clay wants to read as paper stock.
+      backdrop: "grain",
     },
   },
   {
@@ -109,6 +114,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       },
       radius: 0.625,
       fonts: { body: "inter", display: "geist" },
+      // Corner washes have the most room to show on a dark ground.
+      backdrop: "mesh",
       defaultMode: "dark",
     },
   },

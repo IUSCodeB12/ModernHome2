@@ -36,8 +36,22 @@ export function ThemePreview({
   return (
     <div
       style={{ ...style, fontFamily: "var(--theme-font-body)" }}
-      className="min-h-full bg-background text-foreground transition-colors duration-300"
+      className="relative isolate min-h-full bg-background text-foreground transition-colors duration-300"
     >
+      {/*
+       * The backdrop layer, mirroring `.ambient-ground` on the real site: same
+       * generated value, same repeat, same position behind the content. `isolate`
+       * on the parent keeps the negative z-index from escaping into the admin
+       * chrome that surrounds this pane.
+       */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{
+          backgroundImage: theme.backdrop[mode],
+          backgroundRepeat: "repeat",
+        }}
+      />
       <header className="flex items-center justify-between border-b border-border px-6 py-4">
         <span
           className="text-base font-semibold tracking-tight"

@@ -9,7 +9,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { BackdropGrid } from "@/components/admin/theme-editor/backdrop-grid";
 import { ColorField } from "@/components/admin/theme-editor/color-field";
+import type { BackdropId } from "@/lib/theme/backdrops";
 import { deriveDark } from "@/lib/theme/derive";
 import { BODY_FONT_IDS, DISPLAY_FONT_IDS, FONTS, type FontId } from "@/lib/theme/fonts";
 import type { Oklch } from "@/lib/theme/oklch";
@@ -140,10 +142,13 @@ function PaletteFields({
 export function ThemeControls({
   tokens,
   derived,
+  previewMode,
   onPatch,
 }: {
   tokens: ThemeInput;
   derived: { light: DerivedPalette; dark: DerivedPalette };
+  /** Which palette the backdrop tiles should render against. */
+  previewMode: "light" | "dark";
   onPatch: (changes: Partial<ThemeInput>) => void;
 }) {
   const brandClashesWithLogo =
@@ -182,6 +187,17 @@ export function ThemeControls({
             </span>
           </p>
         )}
+      </Section>
+
+      <Section
+        title="Background"
+        description="Painted from your own colours, so it can't clash with the palette."
+      >
+        <BackdropGrid
+          value={tokens.backdrop}
+          palette={derived[previewMode]}
+          onPick={(backdrop: BackdropId) => onPatch({ backdrop })}
+        />
       </Section>
 
       <Section title="Type" description="Two faces, from a list that ships with the site.">

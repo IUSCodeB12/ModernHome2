@@ -23,6 +23,7 @@
  * @see presets.ts  five authored `ThemeInput`s
  */
 
+import type { BackdropId } from "@/lib/theme/backdrops";
 import type { FontId } from "@/lib/theme/fonts";
 import type { Oklch } from "@/lib/theme/oklch";
 
@@ -68,6 +69,8 @@ export type ThemeInput = {
   /** Base corner radius in rem. The four Tailwind radii derive from it. */
   radius: number;
   fonts: { body: FontId; display: FontId };
+  /** Decorative page backdrop, painted from this theme's own colours. */
+  backdrop: BackdropId;
   /** What a first-time visitor sees before touching the light/dark switch. */
   defaultMode: ThemeMode;
   /** Public URLs in the `gallery` bucket under `brand/`. Null uses `lib/brand.ts`. */
@@ -118,6 +121,8 @@ export type DerivedTheme = {
   dark: DerivedPalette;
   radius: number;
   fonts: { body: string; display: string };
+  /** Ready-to-use `background-image` values, one per mode. */
+  backdrop: { id: BackdropId; light: string; dark: string };
   defaultMode: ThemeMode;
   logo: { light: string | null; dark: string | null };
 };
@@ -155,6 +160,9 @@ export const DEFAULT_THEME: ThemeInput = {
   },
   radius: 0.75,
   fonts: { body: "geist", display: "fraunces" },
+  // The warm pools globals.css already paints with the lights off, now a
+  // choice rather than a hardcoded dark-mode-only rule.
+  backdrop: "aurora",
   defaultMode: "system",
   logo: { light: null, dark: null },
 };

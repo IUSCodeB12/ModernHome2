@@ -157,7 +157,12 @@ export function ThemeEditor({ data }: { data: ThemeEditorData }) {
             <PresetGrid active={activePreset} onPick={setTokens} />
           </section>
 
-          <ThemeControls tokens={tokens} derived={live} onPatch={patch} />
+          <ThemeControls
+            tokens={tokens}
+            derived={live}
+            previewMode={mode}
+            onPatch={patch}
+          />
 
           <ThemeHistory
             history={data.history}

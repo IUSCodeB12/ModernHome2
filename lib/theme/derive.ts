@@ -46,6 +46,7 @@ import {
   scaleChroma,
   shiftLightness,
 } from "@/lib/theme/oklch";
+import { backdropCss, backdropWorstCase, type BackdropId } from "@/lib/theme/backdrops";
 import { fontStack } from "@/lib/theme/fonts";
 import type {
   DerivedPalette,
@@ -155,7 +156,22 @@ function mute(
  * matching `globals.css` — they exist as separate tokens because shadcn's
  * components ask for them by name, not because they are meant to differ.
  */
-export function deriveTokens(palette: ThemePalette): DerivedPalette {
+export function deriveTokens(
+  palette: ThemePalette,
+  /**
+   * The backdrop this palette will be painted under.
+   *
+   * It changes what "readable" means. A decorative layer sits *behind* body
+   * text, so it shifts the ground that text is read against — and muted text is
+   * solved to land exactly on AA, which leaves it nothing in reserve. Mesh over
+   * the house palette in dark mode put it at 4.42:1 while every token still
+   * passed in isolation. Passing the backdrop in lets the solve account for it
+   * rather than bolting a fudge factor onto every theme.
+   *
+   * Defaults to "none" so callers that only want the palette are unaffected.
+   */
+  backdrop: BackdropId = "none"
+): DerivedPalette {
   const background = fitToGamut(clampOklch(palette.background));
   const ground = isLight(background) ? "light" : "dark";
   const steps = SURFACES[ground];
@@ -172,6 +188,18 @@ export function deriveTokens(palette: ThemePalette): DerivedPalette {
   // surrounds it. Derived from the brand so focus reads as part of the brand.
   const ring = solveForContrast(brand, background, AA_LARGE) ?? brand;
 
+  // `backdropWorstCase` needs only background, brand and foreground — all
+  // settled above — so there is no circularity in feeding it back into the
+  // text solve below.
+  const underBackdrop = backdropWorstCase(
+    { background, brand, primary, foreground },
+    backdrop
+  );
+  const hardestGround =
+    contrastRatio(foreground, accent) <= contrastRatio(foreground, underBackdrop)
+      ? accent
+      : underBackdrop;
+
   return {
     background,
     foreground,
@@ -184,7 +212,16 @@ export function deriveTokens(palette: ThemePalette): DerivedPalette {
     secondary: muted,
     "secondary-foreground": foreground,
     muted,
-    "muted-foreground": mute(foreground, accent),
+    /*
+     * Solved against whichever ground gives it the least to work with.
+     *
+     * Two candidates, and they are different surfaces rather than degrees of
+     * one. `accent` is an opaque panel painted *over* the backdrop, so the
+     * decoration never shows through it. The page itself has no such cover, so
+     * there the text is read against the background with the backdrop composited
+     * on top at its strongest point. Whichever of those is harder sets the limit.
+     */
+    "muted-foreground": mute(foreground, hardestGround),
     accent,
     "accent-foreground": foreground,
     destructive: DESTRUCTIVE[ground],
@@ -238,13 +275,21 @@ export function deriveDark(light: ThemePalette): ThemePalette {
 
 /** The full computed theme. Never stored — recomputed from `ThemeInput`. */
 export function deriveTheme(input: ThemeInput): DerivedTheme {
+  const light = deriveTokens(input.light, input.backdrop);
+  const dark = deriveTokens(input.dark ?? deriveDark(input.light), input.backdrop);
   return {
-    light: deriveTokens(input.light),
-    dark: deriveTokens(input.dark ?? deriveDark(input.light)),
+    light,
+    dark,
     radius: Math.min(2, Math.max(0, input.radius)),
     fonts: {
       body: fontStack(input.fonts.body),
       display: fontStack(input.fonts.display),
+    },
+    // Per mode, because a backdrop is tinted from the palette it sits on.
+    backdrop: {
+      id: input.backdrop,
+      light: backdropCss(light, input.backdrop),
+      dark: backdropCss(dark, input.backdrop),
     },
     defaultMode: input.defaultMode,
     logo: input.logo,

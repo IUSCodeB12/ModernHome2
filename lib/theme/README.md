@@ -51,6 +51,30 @@ is theme-clean.
 `calc()`ed off the one variable, so a single admin control moves them together.
 A literal `rounded-[14px]` opts out.
 
+**Don't paint your own page background.** The decorative backdrop is one
+element — `.ambient-ground`, rendered by the public layout — reading
+`--theme-backdrop`. A section that sets its own opaque `background` punches a
+hole in it. Leave section backgrounds transparent and let the page ground show
+through; use `bg-card` or `bg-muted` for panels that genuinely need to sit
+above it.
+
+## Adding a backdrop design
+
+Recipes live in `backdrops.ts` and are functions of the palette, never fixed
+artwork — that is what stops them clashing with a colour the admin picked.
+
+1. Add the id to `BACKDROP_IDS` and an entry to `BACKDROPS`.
+2. Add a row to `PEAK` — the tint token and the strongest alpha the design
+   reaches on light and dark grounds.
+3. Add a `case` to `backdropCss` where **every** layer's alpha is `scale ×
+   share`, never a literal.
+
+Step 3 is the one that bites. `PEAK` is what the contrast proof measures and
+what `derive.ts` reserves headroom for, so a layer with a hardcoded alpha makes
+the guarantee describe a page that is not being rendered. Grain shipped that way
+briefly — a fixed `0.55` in its SVG against a declared `0.05` — and the tests
+passed while the tile rendered ten times too heavy.
+
 ## What is not themed, on purpose
 
 - **`/admin`** — the dashboard keeps the house palette. The theme block is

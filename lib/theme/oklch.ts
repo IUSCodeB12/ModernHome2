@@ -54,6 +54,18 @@ export function formatOklch(color: Oklch): string {
   return `oklch(${round(l, 4)} ${round(c, 4)} ${round(h, 2)})`;
 }
 
+/**
+ * `oklch(L C H / A)` — the alpha form, for decorative layers.
+ *
+ * Same guarantee as {@link formatOklch}: four numbers, nothing else, so a
+ * generated backdrop cannot smuggle text into the stylesheet.
+ */
+export function formatOklchAlpha(color: Oklch, alpha: number): string {
+  const { l, c, h } = clampOklch(color);
+  const a = clamp(alpha, 0, 1);
+  return `oklch(${round(l, 4)} ${round(c, 4)} ${round(h, 2)} / ${round(a, 4)})`;
+}
+
 // ---------------------------------------------------------------------------
 // OKLCH → sRGB
 //
@@ -135,24 +147,9 @@ export function hexToOklch(hex: string): Oklch | null {
   }
 
   const [r, g, b] = [0, 2, 4].map((i) =>
-    decodeGamma(parseInt(digits.slice(i, i + 2), 16) / 255)
+    parseInt(digits.slice(i, i + 2), 16)
   );
-
-  // Linear sRGB → LMS, then the cube root that OKLab is defined on.
-  const lLms = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
-  const mLms = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
-  const sLms = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
-
-  const lightness = 0.2104542553 * lLms + 0.793617785 * mLms - 0.0040720468 * sLms;
-  const a = 1.9779984951 * lLms - 2.428592205 * mLms + 0.4505937099 * sLms;
-  const bAxis = 0.0259040371 * lLms + 0.7827717662 * mLms - 0.808675766 * sLms;
-
-  return clampOklch({
-    l: lightness,
-    c: Math.hypot(a, bAxis),
-    // atan2 returns −180…180; clampOklch normalises the negative half.
-    h: (Math.atan2(bAxis, a) * 180) / Math.PI,
-  });
+  return rgbToOklch(r, g, b);
 }
 
 /**
@@ -227,4 +224,47 @@ export function scaleChroma(color: Oklch, factor: number): Oklch {
 /** True for colours a dark foreground should sit on. */
 export function isLight(color: Oklch): boolean {
   return relativeLuminance(color) > 0.18;
+}
+
+/**
+ * `top` painted over `bottom` at `alpha` — the colour a viewer actually sees.
+ *
+ * Compositing is defined on linear light, not on OKLCH coordinates: lerping
+ * lightness and chroma directly would give a plausible-looking colour that is
+ * not the one the compositor produces, and the whole point of this function is
+ * to predict what the screen will show. Used to prove a decorative backdrop
+ * cannot push text below AA — see `backdrops.ts`.
+ */
+export function compositeOver(
+  top: Oklch,
+  bottom: Oklch,
+  alpha: number
+): Oklch {
+  const a = clamp(alpha, 0, 1);
+  const [tr, tg, tb] = oklchToRgb(top);
+  const [br, bg, bb] = oklchToRgb(bottom);
+  const mix = (t: number, b: number) =>
+    Math.round((t * a + b * (1 - a)) * 100) / 100;
+  return rgbToOklch(mix(tr, br), mix(tg, bg), mix(tb, bb));
+}
+
+/** 0–255 sRGB → OKLCH. The shared core of {@link hexToOklch}. */
+export function rgbToOklch(red: number, green: number, blue: number): Oklch {
+  const [r, g, b] = [red, green, blue].map((channel) =>
+    decodeGamma(clamp(channel, 0, 255) / 255)
+  );
+
+  const lLms = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const mLms = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const sLms = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+
+  const lightness = 0.2104542553 * lLms + 0.793617785 * mLms - 0.0040720468 * sLms;
+  const a = 1.9779984951 * lLms - 2.428592205 * mLms + 0.4505937099 * sLms;
+  const bAxis = 0.0259040371 * lLms + 0.7827717662 * mLms - 0.808675766 * sLms;
+
+  return clampOklch({
+    l: lightness,
+    c: Math.hypot(a, bAxis),
+    h: (Math.atan2(bAxis, a) * 180) / Math.PI,
+  });
 }

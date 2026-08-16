@@ -225,25 +225,30 @@
  * The hero paints an opaque `bg-background`, so any glow reaching under it is
  * clipped, and a hard horizontal step would show at the seam.
  */
+/*
+ * The backdrop layer. Which design it paints is now the admin's choice — see
+ * `lib/theme/backdrops.ts` — and it applies in *both* modes rather than only
+ * with the lights off.
+ *
+ * The hardcoded rgba pools that used to live here are the `aurora` recipe, and
+ * `DEFAULT_THEME` selects it, so the lights-off page is unchanged. What is new
+ * is that they are generated from the palette instead of pinned to one amber,
+ * which is what lets them survive a theme change: a teal brand now gets teal
+ * pools rather than a warm glow fighting a cool page.
+ *
+ * `none` is a valid `background-image`, so the "None" backdrop needs no special
+ * case here — and with no theme published at all the var is unset and the
+ * fallback does the same thing.
+ */
 .ambient-ground {
-  display: none;
-}
-
-.dark .ambient-ground {
-  display: block;
   position: absolute;
   inset: 0;
   z-index: -10;
   pointer-events: none;
-  background-repeat: no-repeat;
-  /* Same amber as the finale's bloom, at a third of the alpha — that one lights
-     a single 484px panel, this has to survive being looked at for a whole page. */
-  background-image:
-    radial-gradient(80% 12% at 20% 20%, rgba(255, 177, 99, 0.1), transparent 68%),
-    radial-gradient(70% 11% at 95% 37%, rgba(255, 168, 88, 0.075), transparent 66%),
-    radial-gradient(85% 13% at 0% 55%, rgba(255, 190, 120, 0.065), transparent 66%),
-    radial-gradient(70% 11% at 88% 73%, rgba(255, 172, 92, 0.075), transparent 66%),
-    radial-gradient(90% 12% at 35% 90%, rgba(255, 182, 105, 0.07), transparent 66%);
+  background-image: var(--theme-backdrop, none);
+  /* Grain is a 160px tile and must repeat; gradients resolve to the full box,
+     where repeating is a no-op. One rule covers both. */
+  background-repeat: repeat;
 }
 
 /*

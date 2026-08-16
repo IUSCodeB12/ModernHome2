@@ -17,6 +17,7 @@
  */
 
 import { z } from "zod";
+import { BACKDROP_IDS } from "@/lib/theme/backdrops";
 import { FONTS, type FontId } from "@/lib/theme/fonts";
 
 const FONT_ID_VALUES = Object.keys(FONTS) as [FontId, ...FontId[]];
@@ -71,6 +72,9 @@ export const themeInputSchema = z.object({
     body: z.enum(FONT_ID_VALUES),
     display: z.enum(FONT_ID_VALUES),
   }),
+  // Defaulted rather than required: themes written before backdrops existed
+  // are still valid and simply get the house one.
+  backdrop: z.enum(BACKDROP_IDS).default("aurora"),
   defaultMode: z.enum(["light", "dark", "system"]),
   logo: z.object({ light: brandAssetSchema, dark: brandAssetSchema }),
 });
