@@ -608,6 +608,57 @@ export type Database = {
         }
         Relationships: []
       }
+      theme_settings: {
+        Row: {
+          id: boolean
+          tokens: Json
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          id?: boolean
+          tokens: Json
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          id?: boolean
+          tokens?: Json
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      theme_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          status: string
+          tokens: Json
+          version: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          status: string
+          tokens: Json
+          version?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          status?: string
+          tokens?: Json
+          version?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
