@@ -24,6 +24,13 @@ import { themeInputSchema } from "@/lib/theme/schema";
 import { DEFAULT_THEME, type ThemeInput } from "@/lib/theme/tokens";
 
 /**
+ * "The migration hasn't run yet", as PostgREST and Postgres each report it.
+ * PGRST205 is the schema-cache miss the REST layer returns; 42P01 is the raw
+ * `undefined_table` that surfaces if the cache is bypassed.
+ */
+const MISSING_TABLE_CODES = new Set(["PGRST205", "42P01"]);
+
+/**
  * `cache()` dedupes within a single render pass. The root layout needs the
  * theme for both the injected stylesheet and the provider's default mode, and
  * without this that would be two round trips per request on dynamic routes.
@@ -39,12 +46,25 @@ export const getPublishedTheme = cache(async (): Promise<ThemeInput> => {
     .maybeSingle();
 
   if (error) {
-    // Worth a line. The site renders correctly on the fallback, so a missing
-    // table or a broken policy is otherwise completely silent — which is
-    // exactly how you ship a theme editor that appears to save and never
-    // takes effect. `maybeSingle` puts "no row yet" in `data`, not here, so
-    // this fires on real faults rather than on a not-yet-seeded database.
-    console.error("[theme] could not read theme_settings:", error.message);
+    // A read failure is worth saying out loud — the site renders fine on the
+    // fallback, so a broken policy would otherwise be completely silent, which
+    // is how you ship a theme editor that appears to save and never takes
+    // effect. `maybeSingle` puts "no row yet" in `data` rather than here, so
+    // this only ever fires on a real fault.
+    //
+    // Except one, which is not a fault: the table simply not existing yet,
+    // between deploying this code and running the migration. That is an
+    // expected state on a fresh checkout, and `console.error` in a server
+    // component paints Next's dev overlay — a full-screen red error over a
+    // working page, for a condition the fallback already handles. It gets a
+    // warning and an instruction instead.
+    if (MISSING_TABLE_CODES.has(error.code)) {
+      console.warn(
+        "[theme] no theme_settings table yet — run `pnpm supabase db push`. Using the default theme."
+      );
+    } else {
+      console.error("[theme] could not read theme_settings:", error.message);
+    }
     return DEFAULT_THEME;
   }
   if (!data) return DEFAULT_THEME;
