@@ -49,6 +49,7 @@ export function ThemePreview({
         className="pointer-events-none absolute inset-0 -z-10"
         style={{
           backgroundImage: theme.backdrop[mode],
+          backgroundSize: theme.backdrop.size,
           backgroundRepeat: "repeat",
         }}
       />

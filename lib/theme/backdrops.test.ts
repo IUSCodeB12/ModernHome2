@@ -5,6 +5,7 @@ import {
   type BackdropId,
   backdropCss,
   backdropPeakAlpha,
+  backdropSize,
   backdropWorstCase,
 } from "@/lib/theme/backdrops";
 import { AA_TEXT, contrastRatio } from "@/lib/theme/contrast";
@@ -101,6 +102,48 @@ describe("backdropCss", () => {
           );
         }
       }
+    }
+  });
+
+  /**
+   * Tiling is what makes these viewport-scaled instead of stretching with the
+   * page — but a layer still carrying colour where two tiles meet stacks with
+   * its neighbour into a bright band, once per tile, all the way down.
+   *
+   * So every gradient must complete its falloff inside the tile. For
+   * `radial-gradient(w h at x y%, …, transparent t%)` the vertical reach is
+   * `h × t` either side of `y`, and both ends have to stay on the tile.
+   */
+  it("has no layer that would seam when tiled", () => {
+    const { light } = deriveTheme(DEFAULT_THEME);
+    const tiled = (["aurora", "mesh", "spotlight"] as const);
+    for (const id of tiled) {
+      const css = backdropCss(light, id);
+      const layers = [
+        ...css.matchAll(
+          // `.*?` rather than `[^)]*?`: the colour is an `oklch(… / a)`
+          // function, so the layer contains parentheses of its own.
+          /radial-gradient\(\s*[\d.]+%\s+([\d.]+)%\s+at\s+[\d.]+%\s+(-?[\d.]+)%.*?transparent\s+([\d.]+)%/g
+        ),
+      ];
+      expect(layers.length, `${id}: no layers parsed`).toBeGreaterThan(0);
+      for (const [, radiusY, centreY, stop] of layers) {
+        const reach = (Number(radiusY) * Number(stop)) / 100;
+        const top = Number(centreY) - reach;
+        const bottom = Number(centreY) + reach;
+        expect(top, `${id} layer top`).toBeGreaterThanOrEqual(0);
+        expect(bottom, `${id} layer bottom`).toBeLessThanOrEqual(100);
+      }
+    }
+  });
+
+  it("scales the tiled designs to the viewport, not the document", () => {
+    for (const id of ["aurora", "mesh", "spotlight"] as const) {
+      expect(backdropSize(id), id).toContain("vh");
+    }
+    // Grain and linen are already periodic; stretching them would distort them.
+    for (const id of ["grain", "linen", "none"] as const) {
+      expect(backdropSize(id), id).toBe("auto");
     }
   });
 

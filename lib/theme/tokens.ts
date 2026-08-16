@@ -122,7 +122,7 @@ export type DerivedTheme = {
   radius: number;
   fonts: { body: string; display: string };
   /** Ready-to-use `background-image` values, one per mode. */
-  backdrop: { id: BackdropId; light: string; dark: string };
+  backdrop: { id: BackdropId; light: string; dark: string; size: string };
   defaultMode: ThemeMode;
   logo: { light: string | null; dark: string | null };
 };

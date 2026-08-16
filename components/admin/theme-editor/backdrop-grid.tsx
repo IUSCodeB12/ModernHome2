@@ -5,6 +5,7 @@ import {
   BACKDROPS,
   type BackdropId,
   backdropCss,
+  backdropSize,
 } from "@/lib/theme/backdrops";
 import { formatOklch } from "@/lib/theme/oklch";
 import type { DerivedPalette } from "@/lib/theme/tokens";
@@ -50,6 +51,10 @@ export function BackdropGrid({
               style={{
                 background: formatOklch(palette.background),
                 backgroundImage: backdropCss(palette, backdrop.id),
+                // Tiles are 56px tall, so a 140vh tile would show one sliver.
+                // Scaled to the swatch instead: the composition, in miniature.
+                backgroundSize:
+                  backdropSize(backdrop.id) === "auto" ? "auto" : "100% 100%",
                 backgroundRepeat: "repeat",
               }}
             >

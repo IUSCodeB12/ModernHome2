@@ -46,7 +46,12 @@ import {
   scaleChroma,
   shiftLightness,
 } from "@/lib/theme/oklch";
-import { backdropCss, backdropWorstCase, type BackdropId } from "@/lib/theme/backdrops";
+import {
+  backdropCss,
+  backdropSize,
+  backdropWorstCase,
+  type BackdropId,
+} from "@/lib/theme/backdrops";
 import { fontStack } from "@/lib/theme/fonts";
 import type {
   DerivedPalette,
@@ -290,6 +295,7 @@ export function deriveTheme(input: ThemeInput): DerivedTheme {
       id: input.backdrop,
       light: backdropCss(light, input.backdrop),
       dark: backdropCss(dark, input.backdrop),
+      size: backdropSize(input.backdrop),
     },
     defaultMode: input.defaultMode,
     logo: input.logo,

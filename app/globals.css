@@ -246,8 +246,13 @@
   z-index: -10;
   pointer-events: none;
   background-image: var(--theme-backdrop, none);
-  /* Grain is a 160px tile and must repeat; gradients resolve to the full box,
-     where repeating is a no-op. One rule covers both. */
+  /*
+   * Viewport-scaled, not document-scaled. Without a size the gradients resolve
+   * against this element, which spans the whole page — so the same design was
+   * six times more diffuse on the 11,000px homepage than on a short one. The
+   * tile keeps the density fixed and repeats down the page instead.
+   */
+  background-size: var(--theme-backdrop-size, auto);
   background-repeat: repeat;
 }
 

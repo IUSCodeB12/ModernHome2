@@ -55,7 +55,7 @@ export function themeToCss(theme: DerivedTheme): string {
   const fonts = `--theme-font-body:${theme.fonts.body};--theme-font-display:${theme.fonts.display}`;
 
   return [
-    `${SCOPE}{${paletteBody(theme.light)};${radius};${fonts};--theme-backdrop:${theme.backdrop.light}}`,
+    `${SCOPE}{${paletteBody(theme.light)};${radius};${fonts};--theme-backdrop:${theme.backdrop.light};--theme-backdrop-size:${theme.backdrop.size}}`,
     `${DARK_SCOPE}{${paletteBody(theme.dark)};--theme-backdrop:${theme.backdrop.dark}}`,
   ].join("");
 }

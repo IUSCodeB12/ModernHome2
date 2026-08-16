@@ -194,32 +194,53 @@ export function backdropCss(palette: BackdropSource, id: BackdropId): string {
       return "none";
 
     /*
-     * Anchored to the document, not the viewport: the pools sit at percentages
-     * of the page's height, so you scroll *through* warm zones the way you
-     * would past real lamps. The first starts at 20% so its falloff clears the
-     * homepage hero, which paints an opaque background over anything above it.
+     * Every percentage below resolves against one TILE (see BACKDROP_SIZE), not
+     * against the page. That is the whole reason these read the same on a short
+     * legal page and on the 11,000px homepage.
+     *
+     * They were originally percentages of the backdrop element, which spans the
+     * document — so the composition stretched with the page. Spotlight's glow
+     * had a 1,043px radius on /services and a 6,417px radius on the homepage:
+     * the same alpha smeared over six times the distance, which is no glow at
+     * all. Tiling fixes the density; it also means every design keeps working
+     * however long a page grows.
+     *
+     * The cost of tiling is a seam if a layer is still opaque at a tile edge.
+     * Each one is therefore placed so its falloff completes inside the tile —
+     * `noVisibleSeamWhenTiled` in `backdrops.test.ts` checks the arithmetic.
      */
     case "aurora":
       return [
-        `radial-gradient(80% 12% at 20% 20%, ${tint("brand", 1)}, transparent 68%)`,
-        `radial-gradient(70% 11% at 95% 37%, ${tint("brand", 0.75)}, transparent 66%)`,
-        `radial-gradient(85% 13% at 0% 55%, ${tint("brand", 0.65)}, transparent 66%)`,
-        `radial-gradient(70% 11% at 88% 73%, ${tint("primary", 0.6)}, transparent 66%)`,
-        `radial-gradient(90% 12% at 35% 90%, ${tint("brand", 0.7)}, transparent 66%)`,
+        `radial-gradient(70% 14% at 22% 16%, ${tint("brand", 1)}, transparent 70%)`,
+        `radial-gradient(60% 12% at 88% 34%, ${tint("brand", 0.75)}, transparent 68%)`,
+        `radial-gradient(75% 14% at 10% 54%, ${tint("brand", 0.65)}, transparent 68%)`,
+        `radial-gradient(60% 12% at 82% 72%, ${tint("primary", 0.6)}, transparent 66%)`,
+        `radial-gradient(80% 13% at 38% 88%, ${tint("brand", 0.7)}, transparent 66%)`,
       ].join(",");
 
+    /*
+     * Pulled in off the corners. At 0%/100% the washes were at full strength
+     * exactly where tiles meet, which stacks two of them into a bright band
+     * once per tile — the one arrangement tiling cannot survive.
+     */
     case "mesh":
       return [
-        `radial-gradient(60% 55% at 0% 0%, ${tint("brand", 1)}, transparent 70%)`,
-        `radial-gradient(55% 50% at 100% 5%, ${tint("primary", 0.7)}, transparent 70%)`,
-        `radial-gradient(65% 60% at 100% 100%, ${tint("brand", 0.6)}, transparent 70%)`,
-        `radial-gradient(50% 55% at 0% 95%, ${tint("primary", 0.5)}, transparent 70%)`,
+        `radial-gradient(55% 22% at 12% 20%, ${tint("brand", 1)}, transparent 70%)`,
+        `radial-gradient(50% 20% at 90% 38%, ${tint("primary", 0.7)}, transparent 70%)`,
+        `radial-gradient(58% 22% at 92% 68%, ${tint("brand", 0.6)}, transparent 70%)`,
+        `radial-gradient(52% 20% at 8% 84%, ${tint("primary", 0.5)}, transparent 70%)`,
       ].join(",");
 
+    /*
+     * Sits at 30% of the tile rather than above its top edge. Anchored at
+     * `-8%` the glow was centred off-screen, so on the homepage the part that
+     * remained was hidden under the hero's opaque 900px band and the rest was
+     * pure falloff.
+     */
     case "spotlight":
       return [
-        `radial-gradient(120% 55% at 50% -8%, ${tint("brand", 1)}, transparent 62%)`,
-        `radial-gradient(90% 40% at 50% 105%, ${tint("primary", 0.45)}, transparent 65%)`,
+        `radial-gradient(110% 26% at 50% 30%, ${tint("brand", 1)}, transparent 66%)`,
+        `radial-gradient(80% 18% at 50% 78%, ${tint("primary", 0.45)}, transparent 64%)`,
       ].join(",");
 
     case "grain":
@@ -236,7 +257,26 @@ export function backdropCss(palette: BackdropSource, id: BackdropId): string {
 }
 
 /**
- * Grain is a tile and must repeat; the gradients resolve to the full box, where
- * `repeat` is a no-op. One value covers both rather than a second variable.
+ * `background-size` for a backdrop — what makes the design viewport-scaled.
+ *
+ * The gradients get a tile one and a bit screens tall, so their composition has
+ * a fixed physical size and repeats down however long the page happens to be.
+ * 140vh rather than exactly 100vh so the pattern does not lock to a screenful
+ * and read as paging.
+ *
+ * Grain and linen are already periodic — an SVG tile and a repeating gradient —
+ * so they keep their intrinsic size and would only be distorted by a stretch.
  */
+export function backdropSize(id: BackdropId): string {
+  switch (id) {
+    case "aurora":
+    case "mesh":
+    case "spotlight":
+      return "100% 140vh";
+    default:
+      return "auto";
+  }
+}
+
+/** Everything tiles now, and `repeat` is the default for the intrinsic ones. */
 export const BACKDROP_REPEAT = "repeat";
