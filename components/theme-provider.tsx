@@ -12,12 +12,25 @@ import { ThemeProvider as NextThemes } from "next-themes";
  * `disableTransitionOnChange` is deliberately OFF. The whole point here is that
  * the light visibly sweeps in, so the colour transition is the feature rather
  * than the flicker to suppress.
+ *
+ * `defaultMode` comes from the published theme, so the admin decides what a
+ * *first-time* visitor sees. It is only ever a default: next-themes reads
+ * `storageKey` before paint, so anyone who has touched the light switch keeps
+ * their own choice, and the switch itself is unchanged. That split is the whole
+ * permission model for theming — an admin sets the site's look, a visitor picks
+ * light or dark within it.
  */
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
+export function ThemeProvider({
+  children,
+  defaultMode = "system",
+}: {
+  children: React.ReactNode;
+  defaultMode?: "light" | "dark" | "system";
+}) {
   return (
     <NextThemes
       attribute="class"
-      defaultTheme="system"
+      defaultTheme={defaultMode}
       enableSystem
       storageKey="acestudio-lights"
     >

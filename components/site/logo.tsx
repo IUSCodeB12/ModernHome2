@@ -46,9 +46,15 @@ const TONE: Record<Tone, string> = {
  * The display face is applied inline rather than via `font-display`, because
  * that class is scoped to `.site-theme` — so the admin surfaces, which sit
  * outside it, would silently fall back to sans.
+ *
+ * The variable chain does double duty. `--theme-font-display` is only defined
+ * inside `.site-theme` (the theme block is scoped to it), so on the public site
+ * the wordmark follows the published theme, while on the admin surfaces the
+ * variable is unset and it falls through to Fraunces. That is the intended
+ * split — the theme dresses the site, never the dashboard used to fix it.
  */
 const DISPLAY_STYLE = {
-  fontFamily: "var(--font-fraunces), Georgia, serif",
+  fontFamily: "var(--theme-font-display, var(--font-fraunces), Georgia, serif)",
   fontWeight: 560,
 } as const;
 

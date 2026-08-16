@@ -18,6 +18,7 @@ Non-UI logic, grouped by domain. Server-only unless noted. See
 | `seo/` | `json-ld` builders (LocalBusiness, Service, FAQ, Breadcrumb) |
 | `three/` | Procedural `textures`, camera `tour` keyframes |
 | `admin/` | Per-view data loaders (`*-data.ts`), `guard` (`assertAdmin`), `demo` |
+| `theme/` | Site theming. `oklch`/`contrast`/`derive` (pure colour maths, tested), `tokens` + `fonts` (schema), `presets` (5), `css` (emitter), `schema` (zod), `data` (loader). **Read `theme/README.md` before styling a component** |
 | `utils.ts` | `cn` + small shared helpers |
 | `database.types.ts` | **Generated** Supabase types — do not hand-split |
 

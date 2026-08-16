@@ -96,7 +96,14 @@ export function Hero({ slides = [] }: { slides?: HeroSlide[] }) {
 
           <h1
             className="mt-7 max-w-[13ch] text-balance text-[2.75rem] leading-[1.04] tracking-[-0.02em] [text-shadow:0_1px_28px_var(--background)] sm:text-6xl lg:[text-shadow:none] xl:text-[4.25rem]"
-            style={{ fontFamily: "var(--font-fraunces), Georgia, serif", fontWeight: 400 }}
+            // Inline, so it beats the `.site-theme h1` rule — which is why it
+            // has to name the theme's display face itself. Fraunces stays the
+            // fallback for when no theme is published.
+            style={{
+              fontFamily:
+                "var(--theme-font-display, var(--font-fraunces), Georgia, serif)",
+              fontWeight: 400,
+            }}
           >
             Crafted spaces.
             <br />

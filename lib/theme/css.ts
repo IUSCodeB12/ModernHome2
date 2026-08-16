@@ -47,7 +47,12 @@ function paletteBody(palette: DerivedPalette): string {
  */
 export function themeToCss(theme: DerivedTheme): string {
   const radius = `--radius:${clampRem(theme.radius)}rem`;
-  const fonts = `--font-body:${theme.fonts.body};--font-display:${theme.fonts.display}`;
+  // Prefixed to stay clear of `--font-display`, which `@theme inline` in
+  // globals.css already owns as a Tailwind theme key. That one is resolved at
+  // build time and never emitted at runtime, so the names would not actually
+  // fight — but two different `--font-display`s meaning two different things
+  // in one stylesheet is a trap for whoever reads this next.
+  const fonts = `--theme-font-body:${theme.fonts.body};--theme-font-display:${theme.fonts.display}`;
 
   return [
     `${SCOPE}{${paletteBody(theme.light)};${radius};${fonts}}`,
@@ -81,8 +86,8 @@ export function themeToStyle(
     style["--radius"] = `${clampRem(extras.radius)}rem`;
   }
   if (extras?.fonts) {
-    style["--font-body"] = extras.fonts.body;
-    style["--font-display"] = extras.fonts.display;
+    style["--theme-font-body"] = extras.fonts.body;
+    style["--theme-font-display"] = extras.fonts.display;
   }
   return style as React.CSSProperties;
 }

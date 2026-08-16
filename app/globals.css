@@ -161,12 +161,34 @@
   h2 {
     letter-spacing: -0.02em;
   }
-  /* Editorial serif headlines on the public site only (admin stays sans).
-     Uses --font-fraunces directly: @theme inline vars aren't emitted at runtime. */
+  /*
+   * Typeface, public site only — the admin deliberately stays on the house
+   * sans so a theme can't restyle the dashboard used to fix it.
+   *
+   * `--theme-font-body` and `--theme-font-display` are written by the theme
+   * block that the root layout inlines into <head>. The fallbacks after the
+   * comma are what render when no theme is published, when the stored blob
+   * fails validation, and in the admin's preview pane before a font is chosen —
+   * so this stays correct with the feature switched off entirely.
+   *
+   * Not `--font-display`: `@theme inline` above already owns that name as a
+   * Tailwind theme key. Note that those keys are resolved at build time and
+   * never emitted as runtime custom properties, which is why the display face
+   * is referenced through a variable here rather than via a utility class.
+   */
+  .site-theme {
+    font-family: var(
+      --theme-font-body,
+      var(--font-geist-sans),
+      ui-sans-serif,
+      system-ui,
+      sans-serif
+    );
+  }
   .site-theme h1,
   .site-theme h2,
   .site-theme .font-display {
-    font-family: var(--font-fraunces), Georgia, serif;
+    font-family: var(--theme-font-display, var(--font-fraunces), Georgia, serif);
     letter-spacing: -0.015em;
     line-height: 1.08;
     font-weight: 560;
