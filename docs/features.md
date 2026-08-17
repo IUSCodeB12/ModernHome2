@@ -58,7 +58,8 @@ Enquiry → quote → accept → deposit → job → invoice → receipt.
   (`stage-theme.ts`, `stage-hero`, `journey-rail`, `portal-status`), the pieces a
   hero swaps in (`arrival-ticket`), page sections (`visit-card`, `quote-summary`,
   `enquiry-details`, `job-aside`), list surfaces (`job-card`, `job-row`), and
-  actions (`quote-response`, `payment-panel`, `reschedule-request`, `photo-strip`)
+  actions (`quote-response`, `reschedule-request`, `photo-strip`), and the bill
+  (`invoice-card` — breakdown + view/download, replaced the old `payment-panel` link)
 - **Admin routes:** `app/(admin)/.../bookings/{page,actions}.ts`,
   `app/(admin)/.../quotes/{page,[id]/page,actions}.ts`, `.../invoices/{page,actions}.ts`,
   `.../invoices/[id]/pdf/route.ts` (admin's copy of the tax invoice)

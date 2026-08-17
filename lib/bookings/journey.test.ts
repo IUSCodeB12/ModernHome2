@@ -144,6 +144,18 @@ describe("journeyHeadline", () => {
     expect(journeyHeadline({ status: "invoiced" }).title).toBe("Payment due");
   });
 
+  it("does not promise a receipt that hasn't been raised", () => {
+    // A job can reach 'paid' with no invoice row — the headline used to say the
+    // receipt was "here whenever you need it" directly above a card saying it
+    // wasn't.
+    expect(journeyHeadline({ status: "paid", hasInvoice: false }).body).not.toContain(
+      "here whenever you need it"
+    );
+    expect(journeyHeadline({ status: "paid", hasInvoice: true }).body).toContain(
+      "here whenever you need it"
+    );
+  });
+
   it("gives every status a non-empty headline", () => {
     for (const status of BOOKING_STATUSES) {
       const { title, body } = journeyHeadline({ status });

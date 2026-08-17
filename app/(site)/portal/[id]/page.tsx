@@ -3,7 +3,6 @@ import { notFound, redirect } from "next/navigation";
 import { formatInTimeZone } from "date-fns-tz";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { QuoteResponse } from "@/components/portal/quote-response";
-import { PaymentPanel } from "@/components/portal/payment-panel";
 import { JourneyRail } from "@/components/portal/journey-rail";
 import { StageHero } from "@/components/portal/stage-hero";
 import { VisitCard } from "@/components/portal/visit-card";
@@ -13,6 +12,8 @@ import { JobAside } from "@/components/portal/job-aside";
 import { journeyFor, journeyHeadline, resolveStatus } from "@/lib/bookings/journey";
 import { formatAud, type Answers } from "@/lib/quote/estimate";
 import { calcInvoiceTotals, type LineItem } from "@/lib/invoice/calc";
+import { InvoiceCard } from "@/components/portal/invoice-card";
+import { BUSINESS } from "@/lib/business";
 import { BUSINESS_TIME_ZONE } from "@/lib/slots";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -43,7 +44,7 @@ export default async function PortalDetailPage({
   const { data: quote } = await supabase
     .from("quote_requests")
     .select(
-      "*, services(name, price_unit, service_questions(*)), bookings(*, invoices(id, status, total_cents, amount_paid_cents, deposit_credit_cents, paid_at))"
+      "*, services(name, price_unit, service_questions(*)), bookings(*, invoices(id, invoice_number, status, line_items, subtotal_cents, gst_cents, total_cents, amount_paid_cents, deposit_credit_cents, due_date, created_at, paid_at))"
     )
     .eq("id", id)
     .maybeSingle();
@@ -110,11 +111,10 @@ export default async function PortalDetailPage({
     status,
     arrivalDay: slotStart ? inZone(slotStart, "EEEE") : null,
     installer: booking?.assigned_installer,
+    hasInvoice: !!invoice,
   });
 
   const canReschedule = status === "approved" || status === "booked";
-  const showInvoiceLink =
-    status === "completed" || status === "invoiced" || status === "paid";
   const settled = status === "paid";
   // Where the visit sits relative to now decides how the page is stacked: a
   // visit still to come is the headline, a visit already done is the record.
@@ -161,14 +161,50 @@ export default async function PortalDetailPage({
     />
   );
 
+  const invoiceCard = (
+    <InvoiceCard
+      key="invoice"
+      quoteId={quote.id}
+      phone={BUSINESS.phone}
+      invoice={
+        invoice
+          ? {
+              invoiceNumber: invoice.invoice_number,
+              issuedOn: inZone(new Date(invoice.created_at), "d MMM yyyy"),
+              dueOn: invoice.due_date
+                ? inZone(new Date(invoice.due_date), "d MMM yyyy")
+                : null,
+              paidOn: invoice.paid_at
+                ? inZone(new Date(invoice.paid_at), "d MMM yyyy")
+                : null,
+              lineItems: (invoice.line_items ?? []) as LineItem[],
+              subtotalCents: invoice.subtotal_cents,
+              gstCents: invoice.gst_cents,
+              totalCents: invoice.total_cents,
+              depositCreditCents: invoice.deposit_credit_cents,
+              balanceCents: Math.max(
+                0,
+                invoice.total_cents - invoice.amount_paid_cents
+              ),
+              paid: invoice.status === "paid",
+            }
+          : null
+      }
+    />
+  );
+
   // Whatever the customer came for goes first. While the price is being
   // decided that's the money; once a date exists it's the visit; afterwards
   // it's the receipt. A cancelled job drops the visit card altogether —
   // "Where we're coming" is a promise, and nobody is coming.
+  //
+  // Once the job is billable the invoice leads: at that point the page exists
+  // to answer "what do I owe / what did I pay", and it's the only card that
+  // carries a document the customer may need to keep.
   const sections = journey.cancelled
     ? [quoteCard, detailsCard]
     : visitDone
-      ? [quoteCard, visitCard, detailsCard]
+      ? [invoiceCard, quoteCard, visitCard, detailsCard]
       : pricingStage
         ? [quoteCard, detailsCard]
         : [visitCard, quoteCard, detailsCard];
@@ -199,13 +235,6 @@ export default async function PortalDetailPage({
           actions={
             <>
               {status === "quoted" && <QuoteResponse quoteId={quote.id} />}
-              {showInvoiceLink && (
-                <PaymentPanel
-                  quoteId={quote.id}
-                  paid={settled || invoice?.status === "paid"}
-                  hasInvoice={!!invoice}
-                />
-              )}
               {/* The body invites them to start again; without this it was an
                   invitation with nothing to click. */}
               {journey.cancelled && (

@@ -141,6 +141,15 @@ export type HeadlineInput = {
    */
   arrivalDay?: string | null;
   installer?: string | null;
+  /**
+   * Whether a bill actually exists for this job.
+   *
+   * A job can reach `paid` without an invoice row — jobs settled before the
+   * invoice flow existed, or moved straight past `invoiced`. The paid headline
+   * promised "your receipt is here whenever you need it" regardless, directly
+   * above a card explaining there was no receipt yet.
+   */
+  hasInvoice?: boolean;
 };
 
 export type Headline = {
@@ -212,6 +221,7 @@ export function journeyHeadline({
   status,
   arrivalDay,
   installer,
+  hasInvoice = true,
 }: HeadlineInput): Headline {
   switch (status) {
     case "enquiry":
@@ -270,7 +280,9 @@ export function journeyHeadline({
     case "paid":
       return {
         title: "All paid — thank you",
-        body: "Your receipt is here whenever you need it.",
+        body: hasInvoice
+          ? "Your receipt is here whenever you need it."
+          : "We're finalising your receipt — it'll appear here shortly.",
       };
 
     case "cancelled":

@@ -14,10 +14,14 @@ export const dynamic = "force-dynamic";
  * no service-role access is needed.
  */
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  // `?download=1` forces a save instead of an in-tab preview. Viewing and
+  // saving are genuinely different intents on a tax invoice — one is a glance,
+  // the other is the copy they keep for their records.
+  const download = new URL(req.url).searchParams.get("download") === "1";
   if (!isSupabaseConfigured()) {
     return new Response("Not available", { status: 404 });
   }
@@ -53,7 +57,7 @@ export async function GET(
   return new Response(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="${invoice.invoice_number}.pdf"`,
+      "Content-Disposition": `${download ? "attachment" : "inline"}; filename="${invoice.invoice_number}.pdf"`,
       "Cache-Control": "private, no-store",
     },
   });
