@@ -98,6 +98,26 @@ const s = StyleSheet.create({
     fontSize: 12,
   },
   footer: { marginTop: 40, color: "#a8a29e", fontSize: 8 },
+  // Drawn first so the invoice content prints over it, and `fixed` so it
+  // repeats on a bill long enough to run to a second page.
+  watermark: {
+    position: "absolute",
+    // react-pdf rotates about the block's top-left corner and ignores
+    // `transformOrigin`, so a -30° turn throws the word down and to the left.
+    // These offsets are the compensation, not a design choice — they put the
+    // stamp across the middle of the page. Re-check the render if the angle,
+    // the font size or the word ever changes.
+    top: "26%",
+    left: "8%",
+    right: 0,
+    textAlign: "center",
+    fontSize: 90,
+    letterSpacing: 10,
+    fontFamily: "Helvetica-Bold",
+    color: "#dc2626",
+    opacity: 0.11,
+    transform: "rotate(-30deg)",
+  },
 });
 
 /** Branded A4 receipt/invoice document. */
@@ -106,6 +126,19 @@ export function ReceiptDocument({ data }: { data: ReceiptData }) {
   return (
     <Document title={data.invoiceNumber}>
       <Page size="A4" style={s.page}>
+        {/*
+          An unpaid bill must not be mistakable for a receipt. The same document
+          serves both — the only difference used to be a heading and a footer
+          line, which is easy to miss on a printout or a phone screenshot, and
+          the customer keeps whichever copy they saved. Anything not settled is
+          stamped, `draft` included.
+        */}
+        {!paid && (
+          <Text style={s.watermark} fixed>
+            UNPAID
+          </Text>
+        )}
+
         <View style={s.row}>
           <View>
             <Text style={s.brand}>{ISSUER.name}</Text>
@@ -168,7 +201,13 @@ export function ReceiptDocument({ data }: { data: ReceiptData }) {
           {data.depositCreditCents > 0 && (
             <View style={s.totalRow}>
               <Text style={s.muted}>Less deposit paid</Text>
-              <Text>−{aud(data.depositCreditCents)}</Text>
+              {/*
+                ASCII hyphen, not the typographic minus (U+2212): the built-in
+                Helvetica has no glyph for it, so react-pdf dropped the
+                character silently and the credit printed as a positive
+                "$148.00" — a deduction that looked like another charge.
+              */}
+              <Text>-{aud(data.depositCreditCents)}</Text>
             </View>
           )}
           {!paid && (

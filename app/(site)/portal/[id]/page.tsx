@@ -116,6 +116,10 @@ export default async function PortalDetailPage({
 
   const canReschedule = status === "approved" || status === "booked";
   const settled = status === "paid";
+  // The bill belongs to the two stages where one exists. A `completed` job has
+  // been done but not yet billed, and showing an invoice card there just tells
+  // the customer about a document nobody has raised.
+  const billed = status === "invoiced" || settled;
   // Where the visit sits relative to now decides how the page is stacked: a
   // visit still to come is the headline, a visit already done is the record.
   const visitDone = status === "completed" || status === "invoiced" || settled;
@@ -204,7 +208,7 @@ export default async function PortalDetailPage({
   const sections = journey.cancelled
     ? [quoteCard, detailsCard]
     : visitDone
-      ? [invoiceCard, quoteCard, visitCard, detailsCard]
+      ? [...(billed ? [invoiceCard] : []), quoteCard, visitCard, detailsCard]
       : pricingStage
         ? [quoteCard, detailsCard]
         : [visitCard, quoteCard, detailsCard];

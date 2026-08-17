@@ -88,6 +88,19 @@ export async function updateBookingStatus(
       throw new Error(`Can't move a ${from} job straight to ${toStatus}.`);
     }
 
+    // Raise the invoice *before* the status flips, so "Invoiced" can never mean
+    // a job with no bill behind it. That state was reachable and is live: a job
+    // whose quote has no final price and no line-item breakdown produced no
+    // invoice, moved to Invoiced anyway, and emailed the customer a payment
+    // request with no amount and nothing to open. `ensureInvoiceForBooking` is
+    // idempotent, so an invoice created here and then a failed status write just
+    // gets reused on the next attempt.
+    if (toStatus === "invoiced" && !(await ensureInvoiceForBooking(admin, bookingId))) {
+      throw new Error(
+        "There's nothing to bill on this job — set a final price on the quote before invoicing it."
+      );
+    }
+
     const patch: TablesUpdate<"bookings"> = { status: toStatus };
     // Moving into 'booked' means the deposit is in and the job is locked —
     // stamp the deposit time (if not already) and confirm with the customer.
@@ -121,11 +134,11 @@ export async function updateBookingStatus(
         }
       );
     } else if (toStatus === "invoiced") {
-      // Auto-create the invoice from the accepted quote line items, *then*
-      // ask for payment. This email used to fire on 'completed' — one step
-      // earlier, before any invoice existed — so it asked a customer to pay
-      // an amount it couldn't name, for a bill they couldn't yet open.
-      await ensureInvoiceForBooking(admin, bookingId);
+      // The invoice already exists — it was raised above, before the status
+      // moved. This email used to fire on 'completed', one step earlier and
+      // before any invoice existed, so it asked a customer to pay an amount it
+      // couldn't name for a bill they couldn't yet open.
+      //
       // Ask for the balance, not the total — the deposit is already credited.
       // The amount is part of the key: re-issuing an invoice at a *different*
       // total is news the customer needs, re-issuing the same one isn't.
