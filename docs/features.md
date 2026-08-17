@@ -60,14 +60,19 @@ Enquiry → quote → accept → deposit → job → invoice → receipt.
   `enquiry-details`, `job-aside`), list surfaces (`job-card`, `job-row`), and
   actions (`quote-response`, `payment-panel`, `reschedule-request`, `photo-strip`)
 - **Admin routes:** `app/(admin)/.../bookings/{page,actions}.ts`,
-  `app/(admin)/.../quotes/{page,[id]/page,actions}.ts`, `.../invoices/{page,actions}.ts`
-- **Admin UI:** `components/admin/{bookings-view,booking-drawer,quotes-table,quote-actions,quote-photos,invoice-editor}.tsx`
+  `app/(admin)/.../quotes/{page,[id]/page,actions}.ts`, `.../invoices/{page,actions}.ts`,
+  `.../invoices/[id]/pdf/route.ts` (admin's copy of the tax invoice)
+- **Admin UI:** `components/admin/{bookings-view,booking-drawer,quotes-table,quote-actions,quote-photos,
+  invoices-table,invoice-editor,invoice-payment-dialog}.tsx`
 - **Logic:** `lib/bookings/status.ts` (state machine), `lib/bookings/journey.ts` (the
   5-stage customer-facing view of those statuses, plus its headlines),
   `lib/bookings/countdown.ts` + `hooks/use-countdown.ts` (live arrival countdown),
-  `lib/invoice/{calc,create,receipt-pdf}.tsx`,
+  `lib/invoice/{calc,create,receipt-pdf,receipt-data}.tsx` — `calc` owns GST totals *and*
+  the balance/overdue derivation, `create` credits a paid deposit when raising the invoice,
   `lib/email/{notify,send}.ts`, `lib/admin/{bookings-data,quotes-data,invoices-data}.ts`
-- **DB:** `bookings`, `quote_requests`, `invoices` (+ slot exclusion constraint, status-sync trigger)
+- **DB:** `bookings`, `quote_requests`, `invoices` (+ slot exclusion constraint, status-sync trigger).
+  Invoices carry `deposit_credit_cents` / `amount_paid_cents` / `due_date`; balance and
+  overdue are derived, never stored.
 
 ## Calendar / availability
 - **Routes:** `app/(admin)/.../calendar/{page,actions}.ts`

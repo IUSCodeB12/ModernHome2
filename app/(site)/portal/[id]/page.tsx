@@ -43,7 +43,7 @@ export default async function PortalDetailPage({
   const { data: quote } = await supabase
     .from("quote_requests")
     .select(
-      "*, services(name, price_unit, service_questions(*)), bookings(*, invoices(id, status, total_cents, paid_at))"
+      "*, services(name, price_unit, service_questions(*)), bookings(*, invoices(id, status, total_cents, amount_paid_cents, deposit_credit_cents, paid_at))"
     )
     .eq("id", id)
     .maybeSingle();
@@ -72,6 +72,15 @@ export default async function PortalDetailPage({
 
   const amountCents =
     invoice?.total_cents ?? totals?.total_cents ?? quote.final_quote_cents ?? null;
+
+  // What to actually ask for. On an unsettled invoice that's the balance, not
+  // the total — a customer who has already paid a deposit was being shown the
+  // full quoted price under a "Payment due" headline, i.e. asked for the
+  // deposit twice. Falls back to the total whenever there's no invoice yet.
+  const dueCents =
+    invoice && invoice.status !== "paid"
+      ? Math.max(0, invoice.total_cents - invoice.amount_paid_cents)
+      : amountCents;
 
   // Every date is formatted in Australia/Melbourne here rather than in the
   // components: the browser is in whatever timezone it's in, and an arrival
@@ -179,7 +188,7 @@ export default async function PortalDetailPage({
           journey={journey}
           serviceName={quote.services?.name ?? "Quote request"}
           headline={headline}
-          amount={amountCents !== null ? formatAud(amountCents) : null}
+          amount={dueCents !== null ? formatAud(dueCents) : null}
           arrival={arrivalParts}
           slotStartMs={slotStart?.getTime() ?? null}
           slotEndMs={slotEnd?.getTime() ?? null}

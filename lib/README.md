@@ -10,7 +10,7 @@ Non-UI logic, grouped by domain. Server-only unless noted. See
 | `quote/` | Wizard types/state, answers, `estimate` math, image compress, demo data |
 | `slots.ts` | Availability/slot engine (Australia/Melbourne). Pure + tested |
 | `bookings/` | `status` — booking state machine (transitions); `journey` — the 5-stage customer view + headlines; `countdown` — arrival countdown formatting. All pure, all tested |
-| `invoice/` | `calc` (GST totals), `create` (invoice from quote), `receipt-pdf` |
+| `invoice/` | `calc` (GST totals + balance/overdue), `create` (invoice from quote, deposit credited), `receipt-pdf`, `receipt-data`, `line-presets` |
 | `email/` | `send` (Resend, real when keyed), `notify` (look up customer + send) |
 | `services/` | `data` (loader), `content` (per-slug editorial copy) |
 | `home/` | `data` — homepage loader (services, featured, recent, hero slides) |

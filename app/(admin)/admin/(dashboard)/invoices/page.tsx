@@ -1,20 +1,36 @@
-import { formatInTimeZone } from "date-fns-tz";
 import { getInvoices } from "@/lib/admin/invoices-data";
-import { InvoiceEditor } from "@/components/admin/invoice-editor";
+import { InvoicesTable } from "@/components/admin/invoices-table";
 import { formatAud } from "@/lib/quote/estimate";
-import { BUSINESS_TIME_ZONE } from "@/lib/slots";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Invoices" };
 
-const STATUS_STYLES: Record<string, string> = {
-  draft: "bg-muted text-muted-foreground",
-  sent: "bg-amber-100 text-amber-800",
-  paid: "bg-green-100 text-green-800",
-};
+/** A headline figure with its label. Muted until there's actually money in it. */
+function Stat({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  tone?: "default" | "alert";
+}) {
+  return (
+    <div className="rounded-xl border p-4">
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p
+        className={`mt-1 text-2xl font-semibold tabular-nums ${
+          tone === "alert" ? "text-red-700" : ""
+        }`}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
 
 export default async function AdminInvoicesPage() {
-  const { invoices, demo } = await getInvoices();
+  const { invoices, totals, demo } = await getInvoices();
 
   return (
     <div>
@@ -22,7 +38,7 @@ export default async function AdminInvoicesPage() {
       <p className="mt-1 text-sm text-muted-foreground">
         {demo
           ? "Demo data — Supabase not configured."
-          : "Invoices are created automatically when a job moves to Invoiced."}
+          : "Raised automatically when a job moves to Invoiced. Any deposit already paid is credited."}
       </p>
 
       {invoices.length === 0 ? (
@@ -30,54 +46,21 @@ export default async function AdminInvoicesPage() {
           No invoices yet. Move a completed job to <strong>Invoiced</strong> to raise one.
         </div>
       ) : (
-        <div className="mt-6 overflow-hidden rounded-xl border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-left text-muted-foreground">
-              <tr>
-                <th className="px-4 py-2 font-medium">Number</th>
-                <th className="px-4 py-2 font-medium">Customer</th>
-                <th className="px-4 py-2 font-medium">Service</th>
-                <th className="px-4 py-2 font-medium">Date</th>
-                <th className="px-4 py-2 text-right font-medium">Total</th>
-                <th className="px-4 py-2 font-medium">Status</th>
-                <th className="px-4 py-2 text-right font-medium">Edit</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {invoices.map((inv) => (
-                <tr key={inv.id} className="hover:bg-muted/30">
-                  <td className="px-4 py-2 font-medium">{inv.invoice_number}</td>
-                  <td className="px-4 py-2">{inv.customerName}</td>
-                  <td className="px-4 py-2 text-muted-foreground">{inv.serviceName}</td>
-                  <td className="px-4 py-2 text-muted-foreground">
-                    {formatInTimeZone(new Date(inv.created_at), BUSINESS_TIME_ZONE, "d MMM yyyy")}
-                  </td>
-                  <td className="px-4 py-2 text-right font-medium">
-                    {formatAud(inv.total_cents)}
-                  </td>
-                  <td className="px-4 py-2">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
-                        STATUS_STYLES[inv.status] ?? STATUS_STYLES.draft
-                      }`}
-                    >
-                      {inv.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2 text-right">
-                    {inv.status !== "paid" && (
-                      <InvoiceEditor
-                        invoiceId={inv.id}
-                        invoiceNumber={inv.invoice_number}
-                        lineItems={inv.lineItems}
-                      />
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            <Stat label="Outstanding" value={formatAud(totals.outstandingCents)} />
+            <Stat
+              label={
+                totals.overdueCount === 1 ? "Overdue (1 invoice)" : `Overdue (${totals.overdueCount} invoices)`
+              }
+              value={formatAud(totals.overdueCents)}
+              tone={totals.overdueCents > 0 ? "alert" : "default"}
+            />
+            <Stat label="Invoices raised" value={String(invoices.length)} />
+          </div>
+
+          <InvoicesTable invoices={invoices} />
+        </>
       )}
     </div>
   );

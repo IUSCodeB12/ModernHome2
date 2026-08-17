@@ -1,11 +1,9 @@
 import { createElement } from "react";
-import { formatInTimeZone } from "date-fns-tz";
 import { renderToBuffer } from "@react-pdf/renderer";
-import { BUSINESS_TIME_ZONE } from "@/lib/slots";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
-import { ReceiptDocument, type ReceiptData } from "@/lib/invoice/receipt-pdf";
-import type { LineItem } from "@/lib/invoice/calc";
+import { ReceiptDocument } from "@/lib/invoice/receipt-pdf";
+import { receiptAddress, toReceiptData } from "@/lib/invoice/receipt-data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,25 +39,11 @@ export async function GET(
   const invoice = quote?.bookings?.invoices?.[0];
   if (!quote || !invoice) return new Response("No invoice yet", { status: 404 });
 
-  const booking = quote.bookings;
-  const fmt = (iso: string) =>
-    formatInTimeZone(new Date(iso), BUSINESS_TIME_ZONE, "d MMM yyyy");
-
-  const data: ReceiptData = {
-    invoiceNumber: invoice.invoice_number,
-    status: invoice.status,
-    paidAt: invoice.paid_at ? fmt(invoice.paid_at) : null,
-    issuedAt: fmt(invoice.created_at),
+  const data = toReceiptData(invoice, {
     serviceName: quote.services?.name ?? "Installation",
     customerName: quote.profiles?.full_name ?? "Customer",
-    address: booking?.address_line1
-      ? `${booking.address_line1}, ${booking.suburb ?? ""} ${booking.postcode ?? ""}`.trim()
-      : null,
-    lineItems: (invoice.line_items ?? []) as LineItem[],
-    subtotalCents: invoice.subtotal_cents,
-    gstCents: invoice.gst_cents,
-    totalCents: invoice.total_cents,
-  };
+    address: receiptAddress(quote.bookings),
+  });
 
   const element = createElement(ReceiptDocument, { data }) as unknown as Parameters<
     typeof renderToBuffer

@@ -262,7 +262,9 @@ export function journeyHeadline({
     case "invoiced":
       return {
         title: "Payment due",
-        body: "Pay the installer on site by card or cash, or by bank transfer. Any extra work agreed on the day is already in this total.",
+        // "Balance" rather than "total": the figure beside this headline is what's
+        // left after any deposit, so calling it the total contradicted the number.
+        body: "Pay the installer on site by card or cash, or by bank transfer. This is your balance after any deposit, and it includes extra work agreed on the day.",
       };
 
     case "paid":

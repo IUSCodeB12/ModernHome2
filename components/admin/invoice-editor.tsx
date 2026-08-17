@@ -14,6 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { calcInvoiceTotals, normalizeLineItems, type LineItem } from "@/lib/invoice/calc";
+import { CataloguePicker } from "@/components/admin/line-catalogue-picker";
 import { formatAud } from "@/lib/quote/estimate";
 import { updateInvoiceItems } from "@/app/(admin)/admin/(dashboard)/invoices/actions";
 
@@ -33,10 +34,13 @@ export function InvoiceEditor({
   invoiceId,
   invoiceNumber,
   lineItems,
+  depositCreditCents = 0,
 }: {
   invoiceId: string;
   invoiceNumber: string;
   lineItems: LineItem[];
+  /** Deposit already credited — the bill can't be edited below it. */
+  depositCreditCents?: number;
 }) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Draft[]>(() => toDraft(lineItems));
@@ -49,6 +53,20 @@ export function InvoiceEditor({
     unit_price_cents: Math.round((Number(it.unit_price_cents) || 0) * 100),
   }));
   const totals = calcInvoiceTotals(normalizeLineItems(parsed));
+  // Mirrors the server-side guard, so the admin sees the problem while they're
+  // still editing rather than after a failed save.
+  const belowDeposit = totals.total_cents < depositCreditCents;
+
+  function addLine(line: { description: string; quantity: number; unit_price_cents: number }) {
+    setItems((prev) => [
+      ...prev,
+      {
+        description: line.description,
+        quantity: String(line.quantity),
+        unit_price_cents: (line.unit_price_cents / 100).toFixed(2),
+      },
+    ]);
+  }
 
   function save() {
     setError(null);
@@ -134,6 +152,11 @@ export function InvoiceEditor({
           </Button>
         </div>
 
+        {/* The same catalogue the quote price builder uses — extra work agreed
+            on the day is usually a rate that already exists, and retyping it by
+            hand is how the price on the invoice drifts from the quoted one. */}
+        <CataloguePicker onAdd={addLine} />
+
         <div className="rounded-lg bg-muted/50 p-3 text-sm">
           <div className="flex justify-between text-muted-foreground">
             <span>Subtotal (ex GST)</span>
@@ -147,15 +170,35 @@ export function InvoiceEditor({
             <span>Total</span>
             <span>{formatAud(totals.total_cents)}</span>
           </div>
+          {depositCreditCents > 0 && (
+            <>
+              <div className="flex justify-between text-muted-foreground">
+                <span>Less deposit paid</span>
+                <span>−{formatAud(depositCreditCents)}</span>
+              </div>
+              <div className="mt-1 flex justify-between font-semibold">
+                <span>Balance due</span>
+                <span>
+                  {formatAud(Math.max(0, totals.total_cents - depositCreditCents))}
+                </span>
+              </div>
+            </>
+          )}
         </div>
 
+        {belowDeposit && (
+          <p className="text-sm text-destructive">
+            Total is below the {formatAud(depositCreditCents)} deposit already paid. Refund
+            the difference separately rather than billing a negative amount.
+          </p>
+        )}
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
             Cancel
           </Button>
-          <Button onClick={save} disabled={pending}>
+          <Button onClick={save} disabled={pending || belowDeposit}>
             {pending ? "Saving…" : `Save (${formatAud(totals.total_cents)})`}
           </Button>
         </DialogFooter>

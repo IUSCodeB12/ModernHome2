@@ -310,8 +310,11 @@ export type Database = {
       }
       invoices: {
         Row: {
+          amount_paid_cents: number
           booking_id: string
           created_at: string
+          deposit_credit_cents: number
+          due_date: string | null
           gst_cents: number
           id: string
           invoice_number: string
@@ -325,8 +328,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          amount_paid_cents?: number
           booking_id: string
           created_at?: string
+          deposit_credit_cents?: number
+          due_date?: string | null
           gst_cents?: number
           id?: string
           invoice_number?: string
@@ -340,8 +346,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          amount_paid_cents?: number
           booking_id?: string
           created_at?: string
+          deposit_credit_cents?: number
+          due_date?: string | null
           gst_cents?: number
           id?: string
           invoice_number?: string

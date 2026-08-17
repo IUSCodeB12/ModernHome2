@@ -30,20 +30,28 @@ function formatAddress(booking: {
 /**
  * What the customer actually owes, straight from the invoice.
  *
+ * The *balance*, not the total: a paid deposit is already credited on the
+ * invoice, and "payment due" emails used to quote the full quoted price — which
+ * asked the customer to pay their deposit a second time.
+ *
  * Null when there's nothing to bill (`ensureInvoiceForBooking` returns null for
  * a job with no breakdown and no price). The templates drop the row rather than
  * printing a confident $0.00.
  */
-async function invoiceTotalCents(
+async function invoiceAmounts(
   admin: Admin,
   bookingId: string
-): Promise<number | null> {
+): Promise<{ totalCents: number | null; balanceCents: number | null }> {
   const { data } = await admin
     .from("invoices")
-    .select("total_cents")
+    .select("total_cents, amount_paid_cents")
     .eq("booking_id", bookingId)
     .maybeSingle();
-  return data?.total_cents ?? null;
+  if (!data) return { totalCents: null, balanceCents: null };
+  return {
+    totalCents: data.total_cents,
+    balanceCents: Math.max(0, data.total_cents - data.amount_paid_cents),
+  };
 }
 
 const schema = z.object({
@@ -118,9 +126,10 @@ export async function updateBookingStatus(
       // earlier, before any invoice existed — so it asked a customer to pay
       // an amount it couldn't name, for a bill they couldn't yet open.
       await ensureInvoiceForBooking(admin, bookingId);
+      // Ask for the balance, not the total — the deposit is already credited.
       // The amount is part of the key: re-issuing an invoice at a *different*
       // total is news the customer needs, re-issuing the same one isn't.
-      const dueCents = await invoiceTotalCents(admin, bookingId);
+      const { balanceCents: dueCents } = await invoiceAmounts(admin, bookingId);
       await notifyCustomer(
         admin,
         booking.customer_id,
@@ -129,9 +138,10 @@ export async function updateBookingStatus(
         { bookingId, dedupeKey: `payment_due:${bookingId}:${dueCents}` }
       );
     } else if (toStatus === "paid") {
-      // Read the total before marking paid — same figure either way, but it
-      // keeps the receipt independent of that write succeeding.
-      const amountCents = await invoiceTotalCents(admin, bookingId);
+      // The receipt confirms the whole bill is settled, so it names the total —
+      // deposit included — not just the balance that closed it out. Read before
+      // marking paid, which keeps it independent of that write succeeding.
+      const { totalCents: amountCents } = await invoiceAmounts(admin, bookingId);
       await markInvoicePaidForBooking(admin, bookingId);
       await notifyCustomer(
         admin,

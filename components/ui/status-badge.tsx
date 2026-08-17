@@ -17,6 +17,12 @@ const STYLES: Record<string, string> = {
   invoiced: "bg-purple-100 text-purple-900 border-purple-200",
   paid: "bg-emerald-100 text-emerald-900 border-emerald-200",
   cancelled: "bg-neutral-100 text-neutral-600 border-neutral-200",
+  // invoice states — 'draft'/'sent'/'paid' come from the enum, the last two are
+  // derived from the balance and due date (see lib/invoice/calc.ts).
+  draft: "bg-neutral-100 text-neutral-600 border-neutral-200",
+  sent: "bg-amber-100 text-amber-900 border-amber-200",
+  "part paid": "bg-blue-100 text-blue-900 border-blue-200",
+  overdue: "bg-red-100 text-red-900 border-red-200",
 };
 
 export function StatusBadge({ status }: { status: string }) {
