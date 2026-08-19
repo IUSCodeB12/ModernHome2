@@ -57,11 +57,19 @@ export default async function PortalPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/portal");
 
+  // Scoped to the signed-in customer explicitly, not left to RLS.
+  //
+  // `quote_requests_admin_all` grants admins `FOR ALL USING (is_admin())`, and
+  // policies are OR'd — so an admin loading their own "My bookings" page passed
+  // that policy and got *every customer's* jobs rendered as their own. The
+  // dashboard is where an admin sees everyone; this page means "mine" for
+  // everybody, whatever their role.
   const { data: quotes } = await supabase
     .from("quote_requests")
     .select(
       "id, status, estimate_low_cents, estimate_high_cents, final_quote_cents, created_at, services(name), bookings(id, status, slot_start, slot_end, deposit_cents, assigned_installer)"
     )
+    .eq("customer_id", user.id)
     .order("created_at", { ascending: false });
 
   const inZone = (d: Date, fmt: string) =>

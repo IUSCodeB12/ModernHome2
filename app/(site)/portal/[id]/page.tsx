@@ -40,13 +40,20 @@ export default async function PortalDetailPage({
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/portal/${id}`);
 
-  // RLS scopes this to the customer's own rows — anyone else's id 404s.
+  // Scoped by owner explicitly — anyone else's id 404s, *including* an admin's.
+  //
+  // This used to rely on RLS alone, which scopes correctly for customers but
+  // not for staff: `quote_requests_admin_all` allows admins every row, so a
+  // signed-in admin could open any customer's job on the customer-facing page.
+  // Admin work belongs in /admin, which is built for it and logs nothing to the
+  // customer's own view.
   const { data: quote } = await supabase
     .from("quote_requests")
     .select(
       "*, services(name, price_unit, service_questions(*)), bookings(*, invoices(id, invoice_number, status, line_items, subtotal_cents, gst_cents, total_cents, amount_paid_cents, deposit_credit_cents, due_date, created_at, paid_at))"
     )
     .eq("id", id)
+    .eq("customer_id", user.id)
     .maybeSingle();
 
   if (!quote) notFound();

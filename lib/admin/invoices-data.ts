@@ -60,7 +60,7 @@ export async function getInvoices(): Promise<{
     const invoices = [
       {
         id: "demo-inv-1",
-        invoice_number: "INV-0001",
+        invoice_number: "AS-26H19-3040E",
         total_cents: 130000,
         deposit_credit_cents: 26000,
         amount_paid_cents: 130000,
@@ -77,7 +77,7 @@ export async function getInvoices(): Promise<{
       {
         // Part-paid: a deposit is credited, the balance is still owed.
         id: "demo-inv-2",
-        invoice_number: "INV-0002",
+        invoice_number: "AS-26H19-3177U",
         total_cents: 61000,
         deposit_credit_cents: 12200,
         amount_paid_cents: 12200,
@@ -94,7 +94,7 @@ export async function getInvoices(): Promise<{
       {
         // Overdue, so the list's aging treatment has something to show.
         id: "demo-inv-3",
-        invoice_number: "INV-0003",
+        invoice_number: "AS-26G28-3314L",
         total_cents: 84500,
         deposit_credit_cents: 0,
         amount_paid_cents: 0,

@@ -10,8 +10,11 @@ export const dynamic = "force-dynamic";
 
 /**
  * Streams a freshly-rendered PDF receipt for the customer's own invoice.
- * RLS (invoices_select_own) scopes the read to the signed-in customer, so
- * no service-role access is needed.
+ *
+ * Scoped by `customer_id` as well as RLS. RLS alone is not enough here: the
+ * admin policies grant staff every row, so relying on it let a signed-in admin
+ * pull any customer's tax invoice through the customer route. Admins have their
+ * own copy at /admin/invoices/[id]/pdf.
  */
 export async function GET(
   req: Request,
@@ -38,6 +41,7 @@ export async function GET(
       "id, services(name), profiles(full_name), bookings(address_line1, suburb, postcode, invoices(*))"
     )
     .eq("id", id)
+    .eq("customer_id", user.id)
     .maybeSingle();
 
   const invoice = quote?.bookings?.invoices?.[0];
